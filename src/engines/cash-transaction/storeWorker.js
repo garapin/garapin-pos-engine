@@ -7,7 +7,7 @@ import { storeSchema } from "../../models/storeModel.js";
 import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
 import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.js";
-import { StatusStore } from "../../config/enums.js";
+import { RouteRole, StatusStore } from "../../config/enums.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
