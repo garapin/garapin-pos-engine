@@ -31,18 +31,30 @@ const getTransactionStoreTypeByDatabase = async (
 ) => {
   const StoreModelInStoreDatabase = db.model("Store", storeSchema);
   const storeData = await StoreModelInStoreDatabase.find({
-    merchant_role: "TRX",
+    merchant_role: [RouteRole.TRX, RouteRole.NOT_MERCHANT],
   });
 
   if (storeData.length > 0) {
     for (const store of storeData) {
       const balance = await getBalance(store, baseUrl, apiKey);
-      await checkListTransaction(target_database, store, balance, baseUrl, apiKey);
+      await checkListTransaction(
+        target_database,
+        store,
+        balance,
+        baseUrl,
+        apiKey
+      );
     }
   }
 };
 
-const checkListTransaction = async (target_database, store, balance, baseUrl, apiKey) => {
+const checkListTransaction = async (
+  target_database,
+  store,
+  balance,
+  baseUrl,
+  apiKey
+) => {
   try {
     Logger.log(`Checking transaction for store ${store.store_name}`);
     const StoreModelInStoreDatabase = db.model("Store", storeSchema);
@@ -54,41 +66,50 @@ const checkListTransaction = async (target_database, store, balance, baseUrl, ap
       payment_method: "CASH",
     });
 
-    /// Cek jika jam sudah melebihi jam 11.30 PM
-    const currentTime = new Date();
-    const cutoffTime = new Date();
-    cutoffTime.setHours(23, 30, 0); // Set waktu cutoff menjadi 11.30 PM
-    if (currentTime > cutoffTime) {
-      await StoreModelInStoreDatabase.findOneAndUpdate(
-        { merchant_role: RouteRole.TRX },
-        { $set: { store_status: StatusStore.LOCKED } }
-      ).lean();
-
-      Logger.log(
-        "Waktu sudah melebihi 11.30 PM, update store status to LOCKED."
-      );
-    }
-
     if (transactionList.length === 0) {
+      Logger.log("Transaction list is empty");
       if (
         store.store_status === StatusStore.PENDING_ACTIVE ||
         store.store_status === StatusStore.LOCKED
       ) {
+        Logger.log("Update store status to ACTIVE");
         await StoreModelInStoreDatabase.findOneAndUpdate(
-          { merchant_role: RouteRole.TRX },
+          { merchant_role: [RouteRole.TRX, RouteRole.NOT_MERCHANT] },
           { $set: { store_status: StatusStore.ACTIVE } }
         ).lean();
       }
     }
 
     if (transactionList.length > 0) {
+
+      /// Cek jika jam sudah melebihi jam 11.30 PM
+      const currentTime = new Date();
+      const cutoffTime = new Date();
+      cutoffTime.setHours(14, 0, 0); // Set waktu cutoff menjadi 11.30 PM
+      if (currentTime > cutoffTime && store.store_status === StatusStore.ACTIVE) {
+        Logger.log(
+          "Waktu sudah melebihi 11.30 PM, update store status to LOCKED."
+        );
+        await StoreModelInStoreDatabase.findOneAndUpdate(
+          { merchant_role: [RouteRole.TRX, RouteRole.NOT_MERCHANT] },
+          { $set: { store_status: StatusStore.LOCKED } }
+        ).lean();
+      }
+
       transactionList.map(async (transaction) => {
         Logger.log(
           `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
         );
 
         if (balance >= transaction.total_with_fee) {
-          await processSplitTransactionCash(transaction, balance, store, baseUrl, apiKey, target_database);
+          await processSplitTransactionCash(
+            transaction,
+            balance,
+            store,
+            baseUrl,
+            apiKey,
+            target_database
+          );
         } else {
           Logger.log(
             `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
@@ -104,7 +125,14 @@ const checkListTransaction = async (target_database, store, balance, baseUrl, ap
   }
 };
 
-const processSplitTransactionCash = async (transaction, balance, store, baseUrl, apiKey, target_database) => {
+const processSplitTransactionCash = async (
+  transaction,
+  balance,
+  store,
+  baseUrl,
+  apiKey,
+  target_database
+) => {
   Logger.log(`Processing transaction ${transaction.invoice}`);
   try {
     const TemplateModel = db.model(
@@ -116,10 +144,24 @@ const processSplitTransactionCash = async (transaction, balance, store, baseUrl,
       invoice: transaction.invoice,
     });
 
+    Logger.log("Template");
+    Logger.log(template);
+
     if (template) {
       template.routes.map(async (route) => {
-        await processRouteInvoice(transaction, balance, store, route, baseUrl, apiKey, target_database);
+        await processRouteInvoice(
+          transaction,
+          balance,
+          store,
+          route,
+          baseUrl,
+          apiKey,
+          target_database
+        );
       });
+    } else {
+      Logger.log(`This store not have template ${transaction.invoice}`);
+      updateTransaction(transaction, target_database);
     }
   } catch (error) {
     Logger.errorLog("Error fetching template", error);
@@ -293,5 +335,5 @@ const fetchTransactionDestination = async (
 };
 
 workerpool.worker({
-  processStore: processStore
+  processStore: processStore,
 });

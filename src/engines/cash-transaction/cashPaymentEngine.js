@@ -34,7 +34,7 @@ class CashPaymentEngine {
   }
 
   async getAllStore() {
-      const allStore = await DatabaseModel.find({ db_parent: { $exists: true } });
+      const allStore = await DatabaseModel.find();
       return allStore;
   }
 }

@@ -13,6 +13,7 @@ export const ChannelCategory = {
 
 export const RouteRole = {
     TRX: "TRX",
+    NOT_MERCHANT: "NOT_MERCHANT",
     ADMIN: "ADMIN",
     FEE: "FEE"
 };
