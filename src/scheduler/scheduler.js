@@ -11,7 +11,7 @@ function setupCronJobs() {
     const schedule = process.env.CRON_SCHEDULE || '0 * * * *';
     cron.schedule(schedule, () => {
         Logger.log('Menjalankan cron job VA and QRIS checked Transaction');
-        transactionEngine.getXenditTransaction();
+        transactionEngine.processTransactions();
     });
 
     cron.schedule(schedule, () => {

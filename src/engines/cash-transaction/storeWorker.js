@@ -8,6 +8,7 @@ import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
 import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.js";
 import { RouteRole, StatusStore } from "../../config/enums.js";
+import { templateSchema } from "../../models/templateModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +38,7 @@ const getTransactionStoreTypeByDatabase = async (
   if (storeData.length > 0) {
     for (const store of storeData) {
       const balance = await getBalance(store, baseUrl, apiKey);
+      console.log(`Balance store ${store.store_name} Rp ${balance}`);
       await checkListTransaction(
         target_database,
         store,
@@ -81,12 +83,14 @@ const checkListTransaction = async (
     }
 
     if (transactionList.length > 0) {
-
       /// Cek jika jam sudah melebihi jam 11.30 PM
       const currentTime = new Date();
       const cutoffTime = new Date();
-      cutoffTime.setHours(14, 0, 0); // Set waktu cutoff menjadi 11.30 PM
-      if (currentTime > cutoffTime && store.store_status === StatusStore.ACTIVE) {
+      cutoffTime.setHours(23, 30, 0); // Set waktu cutoff menjadi 11.30 PM
+      if (
+        currentTime > cutoffTime &&
+        store.store_status === StatusStore.ACTIVE
+      ) {
         Logger.log(
           "Waktu sudah melebihi 11.30 PM, update store status to LOCKED."
         );
@@ -101,24 +105,17 @@ const checkListTransaction = async (
           `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
         );
 
-        if (balance >= transaction.total_with_fee) {
-          await processSplitTransactionCash(
-            transaction,
-            balance,
-            store,
-            baseUrl,
-            apiKey,
-            target_database
-          );
-        } else {
-          Logger.log(
-            `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
-          );
-        }
+        await processSplitTransactionCash(
+          transaction,
+          balance,
+          store,
+          baseUrl,
+          apiKey,
+          target_database
+        );
       });
     }
 
-    return { success: true };
   } catch (error) {
     Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
     return { error: error.message };
@@ -144,21 +141,36 @@ const processSplitTransactionCash = async (
       invoice: transaction.invoice,
     });
 
-    Logger.log("Template");
-    Logger.log(template);
-
     if (template) {
-      template.routes.map(async (route) => {
-        await processRouteInvoice(
-          transaction,
-          balance,
-          store,
-          route,
-          baseUrl,
-          apiKey,
-          target_database
+      // Calculate total without route route.destination_account_id !== store.account_holder.id
+      const totalWithoutRouteTrx =
+        transaction.total_with_fee -
+        template.routes.reduce((acc, route) => {
+          if (route.destination_account_id !== store.account_holder.id) {
+            return acc + route.flat_amount;
+          }
+          return acc;
+        }, 0);
+
+      Logger.log(`Total without route TRX: ${totalWithoutRouteTrx}`);
+
+      if (balance >= totalWithoutRouteTrx) {
+        template.routes.map(async (route) => {
+          await processRouteInvoice(
+            transaction,
+            balance,
+            store,
+            route,
+            baseUrl,
+            apiKey,
+            target_database
+          );
+        });
+      } else {
+        Logger.log(
+          `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
         );
-      });
+      }
     } else {
       Logger.log(`This store not have template ${transaction.invoice}`);
       updateTransaction(transaction, target_database);
@@ -179,24 +191,23 @@ const processRouteInvoice = async (
 ) => {
   Logger.log(route.destination_account_id);
   try {
-    if (route.destination_account_id !== store.account_holder.id) {
-      Logger.log(
-        `Routing to ${route.destination_account_id} for transaction ${transaction.invoice}`
-      );
-      Logger.log(
-        `Store ${store.account_holder.id} has enough balance Rp ${balance} for transaction ${transaction.invoice} Rp ${transaction.total_with_fee}`
-      );
+    Logger.log(
+      `Routing to ${route.destination_account_id} for transaction ${transaction.invoice}`
+    );
+    Logger.log(
+      `Store ${store.account_holder.id} has enough balance Rp ${balance} for transaction ${transaction.invoice} Rp ${transaction.total_with_fee}`
+    );
 
-      await checkAndSplitTransaction(
-        route,
-        transaction,
-        store.account_holder.id,
-        baseUrl,
-        apiKey,
-        target_database
-      );
-      return { success: true };
-    }
+    await checkAndSplitTransaction(
+      route,
+      transaction,
+      store.account_holder.id,
+      baseUrl,
+      apiKey,
+      target_database,
+      store
+    );
+    return { success: true };
   } catch (error) {
     Logger.errorLog("Error during transaction split", error);
     return { success: false };
@@ -209,39 +220,125 @@ const checkAndSplitTransaction = async (
   source_user_id,
   baseUrl,
   apiKey,
-  target_database
+  target_database,
+  store
 ) => {
   try {
-    const transactionDestination = await fetchTransactionDestination(
-      route,
-      transaction,
-      baseUrl,
-      apiKey
-    );
-
-    if (transactionDestination.data.data.length === 0) {
-      Logger.log(`Sources id ${source_user_id}`);
-      Logger.log(
-        `Transaction ${transaction.invoice + "&&" + route.reference_id} has not been split yet`
-      );
-      await splitTransaction(
+    if (route.destination_account_id !== store.account_holder.id) {
+      const transactionDestination = await fetchTransactionDestination(
         route,
         transaction,
-        source_user_id,
+        baseUrl,
+        apiKey
+      );
+
+      if (transactionDestination.data.data.length === 0) {
+        Logger.log(`Sources id ${source_user_id}`);
+        Logger.log(
+          `Transaction ${transaction.invoice + "&&" + route.reference_id} has not been split yet`
+        );
+        await splitTransaction(
+          route,
+          transaction,
+          source_user_id,
+          baseUrl,
+          apiKey,
+          target_database,
+          true,
+        );
+      } else {
+        Logger.log(`Transaction ${transaction.invoice} has already been split`);
+      }
+    }
+
+    if (route.role === "TRX" || route.role === "SUPP") {
+      console.log("ROLE TRX OR SUPP");
+      await checkAndSplitChild(
+        route,
+        transaction,
         baseUrl,
         apiKey,
         target_database
       );
-    } else {
-      Logger.log(`Transaction ${transaction.invoice} has already been split`);
     }
+    return { success: true };
+  } catch (error) {
+    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+  }
+};
+
+const checkAndSplitChild = async (
+  routeX,
+  transaction,
+  baseUrl,
+  apiKey,
+  target_database
+) => {
+  let db = null;
+  try {
+    console.log("Ini Reference untuk child");
+    console.log(routeX.reference_id);
+    db = await connectTargetDatabase(routeX.reference_id);
+
+    const Template = db.model("Template", templateSchema);
+    const template = await Template.findOne({});
+
+    if (template !== null && template.status_template === "ACTIVE") {
+      for (const route of template.routes) {
+        if (route.type === "SUPP") {
+          const dbSplit = await connectTargetDatabase(route.reference_id);
+          const SplitModel = dbSplit.model(
+            "Split_Payment_Rule_Id",
+            splitPaymentRuleIdScheme
+          );
+          const splitData = await SplitModel.findOne({
+            invoice: transaction.invoice,
+          });
+
+          if (splitData) {
+            Logger.log(
+              `Routing to SUPP ${route.destination_account_id} for transaction ${transaction.invoice}`
+            );
+            for (const route of splitData.routes) {
+              if (route.role === "SUPP" || route.role === "FEE") {
+                Logger.log(route);
+                Logger.log(
+                  `Routing to Child SUPP ${route.destination_account_id} for transaction ${transaction.invoice}`
+                );
+                console.log(route.source_account_id);
+                await splitTransaction(
+                  route,
+                  transaction,
+                  route.source_account_id,
+                  baseUrl,
+                  apiKey,
+                  target_database,
+                  false,
+                );
+
+                if (route.role === "SUPP") {
+                  await checkAndSplitChild(
+                    route,
+                    transaction,
+                    baseUrl,
+                    apiKey,
+                    target_database
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return { success: true };
   } catch (error) {
     Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
   } finally {
-    if (db) {
-      db.close(); // Menutup koneksi database
-      Logger.log("Database connection closed in worker.");
-    }
+    // if (db) {
+    //   db.close(); // Menutup koneksi database
+    //   Logger.log("Database connection closed in worker.");
+    // }
   }
 };
 
@@ -251,7 +348,8 @@ const splitTransaction = async (
   source_user_id,
   baseUrl,
   apiKey,
-  target_database
+  target_database,
+  mainTrx,
 ) => {
   const transferBody = {
     amount: route.flat_amount,
@@ -276,23 +374,23 @@ const splitTransaction = async (
       Logger.log(
         `Transaction ${transaction.invoice + "&&" + route.reference_id} successfully split`
       );
-      updateTransaction(transaction, target_database);
+      if (mainTrx) {
+        Logger.log("Update Transaction main invoice");
+        await updateTransaction(transaction);
+      }
     } else {
       Logger.log(
         `Failed to split transaction ${transaction.invoice + "&&" + route.reference_id}`
       );
     }
+    return { success: true };
   } catch (error) {
     Logger.errorLog("Error during transaction split", error);
-  } finally {
-    if (db) {
-      db.close(); // Menutup koneksi database
-      Logger.log("Database connection closed in worker.");
-    }
   }
 };
 
 const updateTransaction = async (transaction) => {
+
   const TransactionModel = db.model("Transaction", transactionSchema);
   await TransactionModel.updateOne(
     { invoice: transaction.invoice },

@@ -1,19 +1,34 @@
 import mongoose from 'mongoose';
 import 'dotenv/config';
-import Logger from '../utils/logger.js';
 
 mongoose.set('strictQuery', false);
 const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(`${MONGODB_URI}/garapin_pos?authSource=admin`, { useNewUrlParser: true, useUnifiedTopology: true });
+const connectToDatabase = async () => {
+  try {
+    mongoose.connect(`${MONGODB_URI}/garapin_pos?authSource=admin`, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      minPoolSize: 5,
+      maxPoolSize: 50
+    });
+    console.log(`Connected to the ${MONGODB_URI}/garapin_pos`);
+  } catch (error) {
+    console.error('Connection to the Main Database failed: ', error);
+  }
+};
 
 const mainDatabase = mongoose.connection;
 
-mainDatabase.on('error', console.error.bind(console, 'Connection to the Main Database failed:'));
-
-mainDatabase.once('open', () => {
-  Logger.log(`Connected to the ${MONGODB_URI}/garapin_pos`);
+mainDatabase.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
 });
 
+mainDatabase.on('disconnected', () => {
+  console.log('MongoDB disconnected. Attempting to reconnect...');
+  connectToDatabase();
+});
+
+connectToDatabase();
 
 export default mongoose;

@@ -1,43 +1,68 @@
-import workerpool from 'workerpool';
+import workerpool from "workerpool";
 import Logger from "../../utils/logger.js"; // Pastikan jalur dan ekstensi benar
 import { RouteRole } from "../../config/enums.js";
 import axios from "axios";
 
-const processRoute = async ({ route, transaction, accountId, baseUrl, apiKey }) => {
+const processRoute = async ({
+  route,
+  transaction,
+  accountId,
+  baseUrl,
+  apiKey,
+}) => {
   if (!route || !transaction) {
     throw new Error("Route or transaction data is missing");
   }
 
   try {
-    Logger.log(
-      `Routing to ${route.destination_account_id} for transaction ${transaction.reference_id}`
-    );
+    if (route.destination_account_id !== null) {
+      Logger.log(
+        `Routing to ${route.destination_account_id} for transaction ${transaction.reference_id}`
+      );
 
-    // Implementasi pemrosesan route
-    await checkAndSplitTransaction(route, transaction, accountId, baseUrl, apiKey);
+      // Implementasi pemrosesan route
+      await checkAndSplitTransaction(
+        route,
+        transaction,
+        accountId,
+        baseUrl,
+        apiKey
+      );
+    }
     return { success: true };
   } catch (error) {
     return { error: error.message };
   }
 };
 
-const checkAndSplitTransaction = async (route, transaction, accountId, baseUrl, apiKey) => {
+const checkAndSplitTransaction = async (
+  route,
+  transaction,
+  accountId,
+  baseUrl,
+  apiKey
+) => {
   const transactionDestination = await fetchTransactionDestination(
-    route, transaction, baseUrl, apiKey
+    route,
+    transaction,
+    baseUrl,
+    apiKey
   );
   if (transactionDestination.data.data.length === 0) {
     Logger.log(
       `Transaction ${transaction.reference_id} has not been split yet`
     );
+
     await splitTransaction(route, transaction, accountId, baseUrl, apiKey);
-  } else {
-    Logger.log(
-      `Transaction ${transaction.reference_id} has already been split`
-    );
   }
 };
 
-const fetchTransactionDestination = async (route, transaction, baseUrl, apiKey) => {
+const fetchTransactionDestination = async (
+  route,
+  transaction,
+  baseUrl,
+  apiKey
+) => {
   const url = `${baseUrl}/transactions`;
   return axios.get(url, {
     headers: {
@@ -50,15 +75,30 @@ const fetchTransactionDestination = async (route, transaction, baseUrl, apiKey) 
   });
 };
 
-const splitTransaction = async (route, transaction, accountId, baseUrl, apiKey) => {
+const splitTransaction = async (
+  route,
+  transaction,
+  accountId,
+  baseUrl,
+  apiKey
+) => {
   const totalFee = transaction.fee.xendit_fee + transaction.fee.value_added_tax;
+
+  // console.log("route", route);
+  // console.log("transaction", transaction);
+  // console.log("accountId", accountId);
+  // console.log("baseUrl", baseUrl);
+  // console.log("apiKey", apiKey);
+  // console.log("route.role", route.role);
+  // console.log("route.flat_amount", route.flat_amount);
+  // console.log("totalFee", totalFee);
 
   const transferBody = {
     amount:
       route.role === RouteRole.TRX
         ? route.flat_amount - totalFee
         : route.flat_amount,
-    source_user_id: accountId,
+    source_user_id: route.source_account_id,
     destination_user_id: route.destination_account_id,
     reference: transaction.reference_id + "&&" + route.reference_id,
   };
@@ -86,5 +126,5 @@ const splitTransaction = async (route, transaction, accountId, baseUrl, apiKey) 
 };
 
 workerpool.worker({
-  processRoute: processRoute
+  processRoute: processRoute,
 });
