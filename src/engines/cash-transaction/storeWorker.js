@@ -8,6 +8,7 @@ import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
 import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.js";
 import { RouteRole, StatusStore } from "../../config/enums.js";
+import moment from "moment";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,11 +83,9 @@ const checkListTransaction = async (
 
     if (transactionList.length > 0) {
 
-      /// Cek jika jam sudah melebihi jam 11.30 PM
-      const currentTime = new Date();
-      const cutoffTime = new Date();
-      cutoffTime.setHours(14, 0, 0); // Set waktu cutoff menjadi 11.30 PM
-      if (currentTime > cutoffTime && store.store_status === StatusStore.ACTIVE) {
+      const currentTime = moment();
+      const cutoffTime = moment().set({ hour: 23, minute: 30, second: 0 });
+      if (currentTime.isAfter(cutoffTime) && store.store_status === StatusStore.ACTIVE) {
         Logger.log(
           "Waktu sudah melebihi 11.30 PM, update store status to LOCKED."
         );
