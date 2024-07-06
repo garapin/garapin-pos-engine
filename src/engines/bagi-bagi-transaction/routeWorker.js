@@ -118,7 +118,7 @@ const splitTransaction = async (route, transaction, accountId, baseUrl, apiKey) 
 
   const transferBody = {
     amount:
-      route.role === RouteRole.TRX
+      route.taxes
         ? route.flat_amount - totalFee
         : route.flat_amount,
     source_user_id: route.source_account_id,

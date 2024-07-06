@@ -11,6 +11,8 @@ const routeSchema = new mongoose.Schema({
   target: String,
   role: String,
   fee: Number,
+  taxes: Boolean,
+  totalFee: Number,
 });
 
 // Skema untuk data utama
