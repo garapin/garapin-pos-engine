@@ -379,10 +379,9 @@ const splitTransaction = async (
       Logger.log(
         `Transaction ${transaction.invoice + "&&" + route.reference_id} successfully split`
       );
-      if (mainTrx) {
-        Logger.log("Update Transaction main invoice");
-        await updateTransaction(transaction);
-      }
+      
+      Logger.log("Update Transaction main invoice");
+      await updateTransaction(transaction);
     } else {
       Logger.log(
         `Failed to split transaction ${transaction.invoice + "&&" + route.reference_id}`
