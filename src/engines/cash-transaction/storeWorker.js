@@ -396,9 +396,12 @@ const splitTransaction = async (
 };
 
 const updateTransaction = async (transaction) => {
-  Logger.log("Update Transaction");
-  Logger.log(transaction.invoice);
+  Logger.log(`Update transaction ${transaction.invoice}`);
   const TransactionModel = db.model("Transaction", transactionSchema);
+
+  const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice });
+  Logger.log(`Find transaction ${transaction.invoice}`);
+  Logger.log(findTrx);
   try {
     const updatedTransaction = await TransactionModel.findOneAndUpdate(
       { invoice: transaction.invoice },
@@ -410,6 +413,7 @@ const updateTransaction = async (transaction) => {
       Logger.log(updatedTransaction);
     } else {
       Logger.log("Transaction not found or not updated");
+      Logger.log(updatedTransaction);
     }
   } catch (error) {
     Logger.errorLog("Error updating transaction", error);
