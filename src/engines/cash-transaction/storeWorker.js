@@ -253,6 +253,8 @@ const checkAndSplitTransaction = async (
         );
       } else {
         Logger.log(`Transaction ${transaction.invoice} has already been split`);
+        Logger.log("Update Transaction main invoice");
+        await updateTransaction(transaction);
       }
     }
 
