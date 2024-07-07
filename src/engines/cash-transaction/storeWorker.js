@@ -254,7 +254,7 @@ const checkAndSplitTransaction = async (
       } else {
         Logger.log(`Transaction ${transaction.invoice} has already been split`);
         Logger.log("Update Transaction main invoice");
-        await updateTransaction(transaction);
+        await updateTransaction(transaction, target_database);
       }
     }
 
@@ -383,7 +383,7 @@ const splitTransaction = async (
       );
       
       Logger.log("Update Transaction main invoice");
-      await updateTransaction(transaction);
+      await updateTransaction(transaction, target_database);
     } else {
       Logger.log(
         `Failed to split transaction ${transaction.invoice + "&&" + route.reference_id}`
@@ -395,8 +395,8 @@ const splitTransaction = async (
   }
 };
 
-const updateTransaction = async (transaction) => {
-  Logger.log(`Update transaction ${transaction.invoice}`);
+const updateTransaction = async (transaction, target_database) => {
+  Logger.log(`Update transaction ${transaction.invoice} for ${target_database}`);
   const TransactionModel = db.model("Transaction", transactionSchema);
 
   const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice });
