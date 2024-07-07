@@ -8,7 +8,7 @@ import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
 import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.js";
 import { RouteRole, StatusStore } from "../../config/enums.js";
-import moment from "moment";
+import moment from 'moment-timezone';
 import { templateSchema } from "../../models/templateModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -156,10 +156,13 @@ const processSplitTransactionCash = async (
           `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
         );
 
-        const currentTime = moment();
-        const cutoffTime = moment().set({ hour: 21, minute: 3, second: 0 });
-        Logger.log(`Current time: ${currentTime}`);
-        Logger.log(`Cutoff time: ${cutoffTime}`);
+        const currentTime = moment().tz('Asia/Jakarta'); // Mengatur zona waktu ke Asia/Jakarta
+        const localTime = currentTime.format('HH:mm:ss');
+        console.log(`Current local time: ${localTime}`);
+  
+        const cutoffTime = moment().tz('Asia/Jakarta').set({ hour: 23, minute: 30, second: 0 }); // Set waktu cutoff menjadi 11.30 PM waktu lokal
+        const localCutoffTime = cutoffTime.format('HH:mm:ss');
+        console.log(`Cutoff local time: ${localCutoffTime}`);
         if (
           currentTime.isAfter(cutoffTime) &&
           store.store_status === StatusStore.ACTIVE
