@@ -397,10 +397,10 @@ const splitTransaction = async (
 
 const updateTransaction = async (transaction, target_database) => {
   Logger.log(`Update transaction ${transaction.invoice} for ${target_database}`);
-  const db = await connectTargetDatabase(target_database);
+  //const db = await connectTargetDatabase(target_database);
   const TransactionModel = db.model("Transaction", transactionSchema);
 
-  const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice.trim() });
+  const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice});
   Logger.log(`Find transaction ${transaction.invoice}`);
   Logger.log(findTrx);
   try {
