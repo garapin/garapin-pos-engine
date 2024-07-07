@@ -397,7 +397,7 @@ const splitTransaction = async (
 
 const updateTransaction = async (transaction, target_database) => {
   Logger.log(`Update transaction ${transaction.invoice} for ${target_database}`);
-  //const db = await connectTargetDatabase(target_database);
+  const db = await connectTargetDatabase(target_database);
   const TransactionModel = db.model("Transaction", transactionSchema);
 
   const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice});
@@ -405,7 +405,7 @@ const updateTransaction = async (transaction, target_database) => {
   Logger.log(findTrx);
   try {
     const updatedTransaction = await TransactionModel.findOneAndUpdate(
-      { invoice: transaction.invoice.trim() },
+      { invoice: transaction.invoice },
       { status: "SUCCEEDED" },
       { new: true } // Mengembalikan dokumen yang diperbarui
     );
