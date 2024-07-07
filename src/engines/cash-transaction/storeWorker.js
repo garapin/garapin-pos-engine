@@ -258,16 +258,16 @@ const checkAndSplitTransaction = async (
       }
     }
 
-    if (route.role === "TRX" || route.role === "SUPP") {
-      console.log("ROLE TRX OR SUPP");
-      await checkAndSplitChild(
-        route,
-        transaction,
-        baseUrl,
-        apiKey,
-        target_database
-      );
-    }
+    // if (route.role === "TRX" || route.role === "SUPP") {
+    //   console.log("ROLE TRX OR SUPP");
+    //   await checkAndSplitChild(
+    //     route,
+    //     transaction,
+    //     baseUrl,
+    //     apiKey,
+    //     target_database
+    //   );
+    // }
     return { success: true };
   } catch (error) {
     Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
