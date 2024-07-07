@@ -395,11 +395,13 @@ const splitTransaction = async (
 };
 
 const updateTransaction = async (transaction) => {
+  Logger.log("Update Transaction");
+  Logger.log(transaction.invoice);
   const TransactionModel = db.model("Transaction", transactionSchema);
-  await TransactionModel.updateOne(
+  await TransactionModel.findOneAndUpdate(
     { invoice: transaction.invoice },
     { status: "SUCCEEDED" }
-  ).lean();
+  );
 };
 
 const getBalance = async (store, baseUrl, apiKey) => {
