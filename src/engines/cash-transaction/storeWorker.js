@@ -397,10 +397,21 @@ const updateTransaction = async (transaction) => {
   Logger.log("Update Transaction");
   Logger.log(transaction.invoice);
   const TransactionModel = db.model("Transaction", transactionSchema);
-  await TransactionModel.findOneAndUpdate(
-    { invoice: transaction.invoice },
-    { status: "SUCCEEDED" }
-  );
+  try {
+    const updatedTransaction = await TransactionModel.findOneAndUpdate(
+      { invoice: transaction.invoice },
+      { status: "SUCCEEDED" },
+      { new: true } // Mengembalikan dokumen yang diperbarui
+    );
+    if (updatedTransaction) {
+      Logger.log("Transaction successfully updated");
+      Logger.log(updatedTransaction);
+    } else {
+      Logger.log("Transaction not found or not updated");
+    }
+  } catch (error) {
+    Logger.errorLog("Error updating transaction", error);
+  }
 };
 
 const getBalance = async (store, baseUrl, apiKey) => {
