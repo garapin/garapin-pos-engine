@@ -8,6 +8,7 @@ import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
 import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.js";
 import { RouteRole, StatusStore } from "../../config/enums.js";
+import moment from "moment";
 import { templateSchema } from "../../models/templateModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -60,7 +61,6 @@ const checkListTransaction = async (
   try {
     Logger.log(`Checking transaction for store ${store.store_name}`);
     const StoreModelInStoreDatabase = db.model("Store", storeSchema);
-
     // Check Transaction List
     const TransactionModel = db.model("Transaction", transactionSchema);
     const transactionList = await TransactionModel.find({
@@ -83,23 +83,6 @@ const checkListTransaction = async (
     }
 
     if (transactionList.length > 0) {
-      /// Cek jika jam sudah melebihi jam 11.30 PM
-      const currentTime = new Date();
-      const cutoffTime = new Date();
-      cutoffTime.setHours(23, 30, 0); // Set waktu cutoff menjadi 11.30 PM
-      if (
-        currentTime > cutoffTime &&
-        store.store_status === StatusStore.ACTIVE
-      ) {
-        Logger.log(
-          "Waktu sudah melebihi 11.30 PM, update store status to LOCKED."
-        );
-        await StoreModelInStoreDatabase.findOneAndUpdate(
-          { merchant_role: [RouteRole.TRX, RouteRole.NOT_MERCHANT] },
-          { $set: { store_status: StatusStore.LOCKED } }
-        ).lean();
-      }
-
       transactionList.map(async (transaction) => {
         Logger.log(
           `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
@@ -115,7 +98,6 @@ const checkListTransaction = async (
         );
       });
     }
-
   } catch (error) {
     Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
     return { error: error.message };
@@ -132,6 +114,8 @@ const processSplitTransactionCash = async (
 ) => {
   Logger.log(`Processing transaction ${transaction.invoice}`);
   try {
+    const StoreModelInStoreDatabase = db.model("Store", storeSchema);
+
     const TemplateModel = db.model(
       "Split_Payment_Rule_Id",
       splitPaymentRuleIdScheme
@@ -146,13 +130,14 @@ const processSplitTransactionCash = async (
       const totalWithoutRouteTrx =
         transaction.total_with_fee -
         template.routes.reduce((acc, route) => {
-          if (route.destination_account_id !== store.account_holder.id) {
+          if (route.destination_account_id === route.source_account_id) {
             return acc + route.flat_amount;
           }
           return acc;
         }, 0);
 
       Logger.log(`Total without route TRX: ${totalWithoutRouteTrx}`);
+      Logger.log(`Balance: ${balance}`);
 
       if (balance >= totalWithoutRouteTrx) {
         template.routes.map(async (route) => {
@@ -170,6 +155,23 @@ const processSplitTransactionCash = async (
         Logger.log(
           `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
         );
+
+        const currentTime = moment();
+        const cutoffTime = moment().set({ hour: 19, minute: 30, second: 0 });
+        Logger.log(`Current time: ${currentTime}`);
+        Logger.log(`Cutoff time: ${cutoffTime}`);
+        if (
+          currentTime.isAfter(cutoffTime) &&
+          store.store_status === StatusStore.ACTIVE
+        ) {
+          Logger.log(
+            "Waktu sudah melebihi 11.30 PM, update store status to LOCKED."
+          );
+          await StoreModelInStoreDatabase.findOneAndUpdate(
+            { merchant_role: [RouteRole.TRX, RouteRole.NOT_MERCHANT] },
+            { $set: { store_status: StatusStore.LOCKED } }
+          ).lean();
+        }
       }
     } else {
       Logger.log(`This store not have template ${transaction.invoice}`);
@@ -244,7 +246,7 @@ const checkAndSplitTransaction = async (
           baseUrl,
           apiKey,
           target_database,
-          true,
+          true
         );
       } else {
         Logger.log(`Transaction ${transaction.invoice} has already been split`);
@@ -313,7 +315,7 @@ const checkAndSplitChild = async (
                   baseUrl,
                   apiKey,
                   target_database,
-                  false,
+                  false
                 );
 
                 if (route.role === "SUPP") {
@@ -349,7 +351,7 @@ const splitTransaction = async (
   baseUrl,
   apiKey,
   target_database,
-  mainTrx,
+  mainTrx
 ) => {
   const transferBody = {
     amount: route.flat_amount,
@@ -390,7 +392,6 @@ const splitTransaction = async (
 };
 
 const updateTransaction = async (transaction) => {
-
   const TransactionModel = db.model("Transaction", transactionSchema);
   await TransactionModel.updateOne(
     { invoice: transaction.invoice },
