@@ -399,12 +399,12 @@ const updateTransaction = async (transaction, target_database) => {
   Logger.log(`Update transaction ${transaction.invoice} for ${target_database}`);
   const TransactionModel = db.model("Transaction", transactionSchema);
 
-  const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice });
+  const findTrx = await TransactionModel.findOne({ invoice: transaction.invoice.trim() });
   Logger.log(`Find transaction ${transaction.invoice}`);
   Logger.log(findTrx);
   try {
     const updatedTransaction = await TransactionModel.findOneAndUpdate(
-      { invoice: transaction.invoice },
+      { invoice: transaction.invoice.trim() },
       { status: "SUCCEEDED" },
       { new: true } // Mengembalikan dokumen yang diperbarui
     );
