@@ -157,7 +157,7 @@ const processSplitTransactionCash = async (
         );
 
         const currentTime = moment();
-        const cutoffTime = moment().set({ hour: 23, minute: 30, second: 0 });
+        const cutoffTime = moment().set({ hour: 18, minute: 54, second: 0 });
         if (
           currentTime.isAfter(cutoffTime) &&
           store.store_status === StatusStore.ACTIVE
