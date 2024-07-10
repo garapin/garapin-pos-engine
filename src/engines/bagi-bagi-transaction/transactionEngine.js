@@ -36,6 +36,10 @@ class TransactionEngine {
           Authorization: `Basic ${Buffer.from(this.apiKey + ":").toString("base64")}`,
           "for-user-id": this.accountId,
         },
+        params: {
+          limit: 15,
+          channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
+        },
       });
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
