@@ -37,7 +37,7 @@ class TransactionEngine {
           "for-user-id": this.accountId,
         },
         params: {
-          limit: 15,
+          limit: 10,
           channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
         },
       });
