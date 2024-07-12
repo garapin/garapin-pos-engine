@@ -68,7 +68,7 @@ class TransactionEngine {
 
       for (const store of allStore) {
         const storeData = JSON.parse(JSON.stringify(store));
-        const transactionsData = JSON.parse(JSON.stringify(filteredTransactions));
+        const transactionsData = JSON.parse(JSON.stringify(transactions));
         try {
           const result = await this.pool.exec('processTransaction', [{ transactions: transactionsData, store: storeData, accountId: this.accountId, baseUrl: this.baseUrl, apiKey: this.apiKey }]);
           Logger.log("Transaction processed:", result);
