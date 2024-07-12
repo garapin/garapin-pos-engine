@@ -126,6 +126,8 @@ const splitTransaction = async (route, transaction, accountId, baseUrl, apiKey) 
     reference: transaction.reference_id + "&&" + route.reference_id,
   };
 
+  Logger.log(`Transfer body: ${JSON.stringify(transferBody, null, 2)}`);
+
   try {
     const postTransfer = await axios.post(
       `${baseUrl}/transfers`,
@@ -144,7 +146,11 @@ const splitTransaction = async (route, transaction, accountId, baseUrl, apiKey) 
       Logger.log(`Failed to split transaction ${transaction.reference_id}`);
     }
   } catch (error) {
-    Logger.errorLog("Error during transaction split", error);
+    Logger.errorLog("Error during transaction split", {
+      message: error.message,
+      stack: error.stack,
+      response: error.response ? JSON.stringify(error.response.data, null, 2) : null,
+    });
   }
 };
 
