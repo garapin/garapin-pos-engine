@@ -247,7 +247,6 @@ const splitTransaction = async (
         timestamp: endTime,
       });
     }
-    throw new Error(`Error in splitTransaction: ${error.message}`);
   }
 };
 
