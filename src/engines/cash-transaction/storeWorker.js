@@ -49,6 +49,27 @@ const getTransactionStoreTypeByDatabase = async (
       );
     }
   }
+
+  if (target_database === "garapin_pos") {
+    Logger.log("Cek ke main DB");
+
+    var store = {
+      store_name: "Garapin POS",
+      account_holder: {
+        id: process.env.XENDIT_ACCOUNT_GARAPIN,
+      },
+    }
+
+    const balance = await getBalance(store, baseUrl, apiKey);
+    console.log(`Balance store Garapin POS Rp ${balance}`);
+    await checkListTransaction(
+      target_database,
+      store,
+      balance,
+      baseUrl,
+      apiKey
+    );
+  }
 };
 
 const checkListTransaction = async (
@@ -418,6 +439,7 @@ const updateTransaction = async (transaction, target_database) => {
 };
 
 const getBalance = async (store, baseUrl, apiKey) => {
+  Logger.log(`Getting balance for store ${store.store_name}`);
   const url = `${baseUrl}/balance`;
   try {
     const response = await axios.get(url, {

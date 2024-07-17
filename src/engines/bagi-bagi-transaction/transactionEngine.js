@@ -37,7 +37,7 @@ class TransactionEngine {
           "for-user-id": this.accountId,
         },
         params: {
-          limit: 10,
+          limit: 15,
           channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
         },
       });
@@ -52,7 +52,6 @@ class TransactionEngine {
     // Mengukur waktu menggunakan worker threads
     console.time("Worker Pool");
     try {
-
       const [transactions, allStore] = await Promise.all([
         this.getXenditTransaction(),
         this.getAllStore()
@@ -66,7 +65,8 @@ class TransactionEngine {
         return true;
       });
 
-      for (const store of allStore) {
+      // Proses transaksi secara paralel menggunakan worker threads
+      const promises = allStore.map(async store => {
         const storeData = JSON.parse(JSON.stringify(store));
         const transactionsData = JSON.parse(JSON.stringify(transactions));
         try {
@@ -79,7 +79,9 @@ class TransactionEngine {
             Logger.errorLog(`Error processing transaction: ${error.message || error}`);
           }
         }
-      }
+      });
+
+      await Promise.all(promises);
     } catch (error) {
       Logger.errorLog(`Error processing transactions: ${error.message}`);
       if (error.name === 'MongoNetworkError') {

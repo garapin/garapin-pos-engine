@@ -35,6 +35,15 @@ class CashPaymentEngine {
 
   async getAllStore() {
       const allStore = await DatabaseModel.find();
+
+      const garapinPosStore = {
+        db_name: "garapin_pos",
+      }
+
+      allStore.push(garapinPosStore);
+
+      console.log("Total Store: ", allStore.length);
+      console.log(allStore);
       return allStore;
   }
 }
