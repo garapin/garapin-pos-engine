@@ -22,7 +22,7 @@ function setupCronJobs() {
     });
 
     // Jadwal untuk raku status
-  const scheduleRaku = "*/5 * * * *"; //"*/1 * * * *";
+  const scheduleRaku = "*/1 * * * *"; //"*/1 * * * *";
   cron.schedule(scheduleRaku, () => {
     Logger.log("Menjalankan cron check raku status");
     rakuEngine.checkprocessStatus();
