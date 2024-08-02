@@ -148,7 +148,7 @@ class RakuEngine {
               const startDate = new Date(position.start_date);
               startDate.setHours(0, 0, 0, 0);
               const dueDateInDays = 2;
-              const payDuration = 1240 * 60 * 1000;
+              const payDuration = 1200 * 60 * 1000;
               const endDateWithDueDate = new Date(endDate);
               endDateWithDueDate.setDate(endDate.getDate() + dueDateInDays);
 
