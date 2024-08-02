@@ -6,7 +6,7 @@ import workerpool from "workerpool";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DatabaseModel } from "../../models/databaseModel.js";
-import { RakModel, rakSchema } from "../../models/rakuRakModel.js";
+import { rakSchema } from "../../models/rakuRakModel.js";
 import { connectTargetDatabase } from "../../config/targetDatabase.js";
 import { categorySchema } from "../../models/rakuCategoryModel.js";
 import { rakTypeSchema } from "../../models/rakuRakTypeModel.js";
@@ -29,6 +29,7 @@ class RakuEngine {
 
   async getAllRak(stores) {
     try {
+      const allStoresRaks = [];
       for (const store of stores) {
         const storeDatabase = await connectTargetDatabase(store.db_name);
 
@@ -52,12 +53,22 @@ class RakuEngine {
           ])
           .sort({ createdAt: -1 })
           .lean({ virtuals: true });
-        return { allRaks, positionModelStore, rakModelStore };
+
+        allStoresRaks.push({
+          store,
+          allRaks,
+          rakModelStore,
+          positionModelStore,
+        });
       }
+
+      return allStoresRaks;
     } catch (error) {
       console.error("Error fetching raks:", error);
+      throw error; // Opsional, agar error bisa diteruskan ke pemanggil fungsi
     }
   }
+
   async getXenditTransaction() {
     const url = `${this.baseUrl}/transactions`;
     try {
@@ -90,8 +101,8 @@ class RakuEngine {
       const [transactions, allStore] = await Promise.all([
         this.getXenditTransaction(),
         this.getAllStore(),
-      ]); 
-      
+      ]);
+
       // Proses filter raku store
       const rakuStore = allStore;
       // .filter(
@@ -99,19 +110,26 @@ class RakuEngine {
       //     // store.db_name.startsWith("om")
       // );
 
-      const { allRaks, positionModelStore, rakModelStore } =
-        await this.getAllRak(rakuStore);
+      const allStoresWithRaks = await this.getAllRak(rakuStore);
 
-      const resultStatusPosition = await this.updateStatusPosition(
-        allRaks,
-        positionModelStore
+      const allRakuStore = allStoresWithRaks.filter(
+        (x) => x.allRaks.length > 0
       );
 
-      if (resultStatusPosition) {
-        const resultStatusRak = await this.updateStatusRak(
-          allRaks,
-          rakModelStore
+      for (const raks of allStoresWithRaks.filter(
+        (x) => x.allRaks.length > 0
+      )) {
+        const resultStatusPosition = await this.updateStatusPosition(
+          raks.allRaks,
+          raks.positionModelStore
         );
+
+        if (resultStatusPosition) {
+          const resultStatusRak = await this.updateStatusRak(
+            raks.allRaks,
+            raks.rakModelStore
+          );
+        }
       }
     } catch (error) {
       Logger.errorLog(`Error processing transactions: ${error.message}`);
