@@ -181,7 +181,7 @@ const processSplitTransactionCash = async (
         const localTime = currentTime.format('HH:mm:ss');
         console.log(`Current local time: ${localTime}`);
   
-        const cutoffTime = moment().tz('Asia/Jakarta').set({ hour: 1, minute: 14, second: 0 }); // Set waktu cutoff menjadi 11.30 PM waktu lokal
+        const cutoffTime = moment().tz('Asia/Jakarta').set({ hour: 23, minute: 30, second: 0 }); // Set waktu cutoff menjadi 11.30 PM waktu lokal
         const localCutoffTime = cutoffTime.format('HH:mm:ss');
         console.log(`Cutoff local time: ${localCutoffTime}`);
         if (
