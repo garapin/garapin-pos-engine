@@ -12,6 +12,7 @@ import { categorySchema } from "../../models/rakuCategoryModel.js";
 import { rakTypeSchema } from "../../models/rakuRakTypeModel.js";
 import { positionSchema } from "../../models/rakuPositionModel.js";
 import mongoose from "mongoose";
+import moment from "moment-timezone";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,10 +113,6 @@ class RakuEngine {
 
       const allStoresWithRaks = await this.getAllRak(rakuStore);
 
-      const allRakuStore = allStoresWithRaks.filter(
-        (x) => x.allRaks.length > 0
-      );
-
       for (const raks of allStoresWithRaks.filter(
         (x) => x.allRaks.length > 0
       )) {
@@ -136,27 +133,142 @@ class RakuEngine {
     }
   }
 
+  // async updateStatusPosition(allRaks, positionModelStore) {
+  //   try {
+  //     const updatedRaks = await Promise.all(
+  //       allRaks.map(async (rak) => {
+  //         await Promise.all(
+  //           rak.positions.map(async (position) => {
+  //             const today = new Date();
+
+  //             const endDate = new Date(position.end_date);
+  //             const startDate = new Date(position.start_date);
+  //             startDate.setHours(0, 0, 0, 0);
+  //             const dueDateInDays = 2;
+  //             const payDuration = 1200 * 60 * 1000;
+  //             const endDateWithDueDate = new Date(endDate);
+  //             endDateWithDueDate.setDate(endDate.getDate() + dueDateInDays);
+
+  //             if (position.status === "RENT") {
+  //               today.setHours(0, 0, 0, 0);
+  //               endDate.setHours(0, 0, 0, 0);
+  //               endDateWithDueDate.setHours(0, 0, 0, 0);
+
+  //               if (
+  //                 today.getTime() > endDate.getTime() &&
+  //                 today.getTime() <= endDateWithDueDate.getTime()
+  //               ) {
+  //                 position.status = "IN_COMING";
+  //                 position.available_date = endDateWithDueDate;
+  //               } else if (today.getTime() > endDateWithDueDate.getTime()) {
+  //                 position.status = "AVAILABLE";
+  //                 position.available_date = today;
+  //               }
+  //             } else if (position.status === "IN_COMING") {
+  //               const todayMidNight = today.getTime();
+  //               const endMidNight = endDateWithDueDate.getTime();
+  //               today.setHours(0, 0, 0, 0);
+
+  //               if (todayMidNight > endMidNight) {
+  //                 position.status = "AVAILABLE";
+  //                 position.available_date = today;
+  //               }
+  //             } else if (position.status === "UNPAID") {
+  //               const nowNPayDuration = new Date(today.getTime() + payDuration);
+  //               if (startDate.getTime() < nowNPayDuration.getTime()) {
+  //                 position.status = "AVAILABLE";
+  //                 position.available_date = today;
+  //               }
+  //             } else if (position.status === "EXPIRED") {
+  //               position.status = "AVAILABLE";
+  //               position.available_date = today;
+  //             } else if (position.status === "AVAILABLE") {
+  //               position.status = "AVAILABLE";
+  //               position.available_date = today;
+  //             }
+
+  //             return {
+  //               _id: position._id,
+  //               status: position.available_date,
+  //               available_date: position.available_date,
+  //             };
+  //           })
+  //         );
+  //         return rak;
+  //       })
+  //     );
+
+  //     // Setelah mendapatkan semua update, lakukan operasi update ke database
+  //     for (const rak of updatedRaks) {
+  //       for (const position of rak.positions) {
+  //         try {
+  //           const update = await positionModelStore.updateOne(
+  //             { _id: position._id },
+  //             {
+  //               status: position.status,
+  //               available_date: position.available_date,
+  //               ...(position.status === "AVAILABLE" && {
+  //                 $unset: { end_date: "", start_date: "" },
+  //               }),
+  //             }
+  //           );
+  //         } catch (error) {
+  //           console.error(`Failed to update position ${position._id}: `, error);
+  //         }
+  //       }
+  //     }
+  //     return updatedRaks;
+  //   } catch (error) {
+  //     console.error("An error occurred during the update process: ", error);
+  //     throw error;
+  //   }
+  // }
   async updateStatusPosition(allRaks, positionModelStore) {
     try {
+      // Define Jakarta time zone and other constants
+      const jakartaTimezone = "Asia/Jakarta";
+      const dueDateInDays = 2;
+      const payDuration = 1200 * 60 * 1000; // 1200 minutes in milliseconds
+
+      // Process each rak and its positions
       const updatedRaks = await Promise.all(
         allRaks.map(async (rak) => {
           await Promise.all(
             rak.positions.map(async (position) => {
-              const today = new Date();
+              // Current date in Jakarta time zone
+              const today = moment()
+                .tz(jakartaTimezone)
+                // .startOf("day")
+                .toDate();
 
-              const endDate = new Date(position.end_date);
-              const startDate = new Date(position.start_date);
-              startDate.setHours(0, 0, 0, 0);
-              const dueDateInDays = 2;
-              const payDuration = 1200 * 60 * 1000;
-              const endDateWithDueDate = new Date(endDate);
-              endDateWithDueDate.setDate(endDate.getDate() + dueDateInDays);
+              // End date in Jakarta time zone
+              const endDate = moment
+                .tz(position.end_date, jakartaTimezone)
+                // .startOf("day")
+                .toDate();
+              // Start date in Jakarta time zone
+              const startDate = moment
+                .tz(position.start_date, jakartaTimezone)
+                // .startOf("day")
+                .toDate();
+              // End date with due date added in Jakarta time zone
+              const endDateWithDueDate = moment(endDate)
+                .add(dueDateInDays, "days")
+                .toDate();
 
+              // Check and update the position status
               if (position.status === "RENT") {
-                today.setHours(0, 0, 0, 0);
-                endDate.setHours(0, 0, 0, 0);
-                endDateWithDueDate.setHours(0, 0, 0, 0);
+                // if (position.name_position==='Posisi A1') {
+                //   console.log('====================================');
+                //   console.log(position,
+                //     today.getTime() > endDate.getTime(),
+                //     today.getTime() > endDateWithDueDate.getTime(),
+                //     moment(position.available_date).format("MMMM DD YYYY, h:mm:ss a"),
+                //     moment(endDate).format("MMMM DD YYYY, h:mm:ss a")
+                //   );
 
+                //   console.log('====================================');
+                // }
                 if (
                   today.getTime() > endDate.getTime() &&
                   today.getTime() <= endDateWithDueDate.getTime()
@@ -166,15 +278,15 @@ class RakuEngine {
                 } else if (today.getTime() > endDateWithDueDate.getTime()) {
                   position.status = "AVAILABLE";
                   position.available_date = today;
+                } else {
+                  position.available_date = endDateWithDueDate;
                 }
               } else if (position.status === "IN_COMING") {
-                const todayMidNight = today.getTime();
-                const endMidNight = endDateWithDueDate.getTime();
-                today.setHours(0, 0, 0, 0);
-
-                if (todayMidNight > endMidNight) {
+                if (today.getTime() > endDateWithDueDate.getTime()) {
                   position.status = "AVAILABLE";
                   position.available_date = today;
+                } else {
+                  position.available_date = endDateWithDueDate;
                 }
               } else if (position.status === "UNPAID") {
                 const nowNPayDuration = new Date(today.getTime() + payDuration);
@@ -182,17 +294,18 @@ class RakuEngine {
                   position.status = "AVAILABLE";
                   position.available_date = today;
                 }
-              } else if (position.status === "EXPIRED") {
-                position.status = "AVAILABLE";
-                position.available_date = today;
-              } else if (position.status === "AVAILABLE") {
+              } else if (
+                position.status === "EXPIRED" ||
+                position.status === "AVAILABLE"
+              ) {
                 position.status = "AVAILABLE";
                 position.available_date = today;
               }
 
+              // Return updated position details
               return {
                 _id: position._id,
-                status: position.available_date,
+                status: position.status,
                 available_date: position.available_date,
               };
             })
@@ -201,11 +314,14 @@ class RakuEngine {
         })
       );
 
-      // Setelah mendapatkan semua update, lakukan operasi update ke database
+      // Update the database with the new status and availability date
       for (const rak of updatedRaks) {
         for (const position of rak.positions) {
+          // console.debug(
+          //   moment(position.available_date).format("MMMM Do YYYY, h:mm:ss a")
+          // );
           try {
-            const update = await positionModelStore.updateOne(
+            await positionModelStore.updateOne(
               { _id: position._id },
               {
                 status: position.status,
@@ -220,6 +336,7 @@ class RakuEngine {
           }
         }
       }
+
       return updatedRaks;
     } catch (error) {
       console.error("An error occurred during the update process: ", error);

@@ -28,10 +28,10 @@ function setupCronJobs() {
     rakuEngine.checkprocessStatus();
   });
 
-  // setInterval(() => {
-  //   Logger.log("Menjalankan cron check raku status setiap 10 detik");
-  //   rakuEngine.checkprocessStatus();
-  // }, 10000); // 10000 ms = 10 detik
+  setInterval(() => {
+    Logger.log("Menjalankan cron check raku status setiap 10 detik");
+    rakuEngine.checkprocessStatus();
+  }, 60000); // 60000 ms = 1 minute
 }
 
 export default setupCronJobs;
