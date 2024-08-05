@@ -423,7 +423,7 @@ const updateTransaction = async (transaction, target_database) => {
   try {
     const updatedTransaction = await TransactionModel.findOneAndUpdate(
       { invoice: transaction.invoice },
-      { status: "SUCCEEDED" },
+      { status: "SUCCEEDED", settlement_status: "SETTLED" },
       { new: true } // Mengembalikan dokumen yang diperbarui
     );
     if (updatedTransaction) {

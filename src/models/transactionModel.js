@@ -14,6 +14,10 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    settlement_status: {
+      type: String,
+      default: "",
+    },
     invoice_label: {
       type: String,
       required: true

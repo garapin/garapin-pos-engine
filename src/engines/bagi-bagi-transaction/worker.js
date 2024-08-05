@@ -5,6 +5,7 @@ import Logger from "../../utils/logger.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Cashflow, SettlementStatus } from "../../config/enums.js";
+import { transactionSchema } from "../../models/transactionModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,16 @@ const processTransaction = async ({
       ) {
         storeDatabase = await connectTargetDatabase(store.db_name);
 
+        const TransactionModel = storeDatabase.model(
+          "Transaction",
+          transactionSchema
+        );
+
+        await TransactionModel.updateOne(
+          { invoice: transaction.reference_id },
+          { settlement_status: "SETTLED" }
+        );
+
         const TemplateModel = storeDatabase.model(
           "Split_Payment_Rule_Id",
           splitPaymentRuleIdScheme
@@ -50,14 +61,27 @@ const processTransaction = async ({
           );
 
           for (const route of template.routes) {
-            if (route.destination_account_id !== route.source_account_id || route.destination_account_id !== null) {
+            if (
+              route.destination_account_id !== route.source_account_id ||
+              route.destination_account_id !== null
+            ) {
               // Klon data secara manual sebelum mengirimnya ke worker thread
               const routeData = JSON.parse(JSON.stringify(route));
               const transactionData = JSON.parse(JSON.stringify(transaction));
               try {
-                await pool.exec('processRoute', [{ route: routeData, transaction: transactionData, accountId, baseUrl, apiKey }]);
+                await pool.exec("processRoute", [
+                  {
+                    route: routeData,
+                    transaction: transactionData,
+                    accountId,
+                    baseUrl,
+                    apiKey,
+                  },
+                ]);
               } catch (error) {
-                Logger.errorLog(`Error processing route for transaction ${transaction.reference_id}: ${error.message || error}`);
+                Logger.errorLog(
+                  `Error processing route for transaction ${transaction.reference_id}: ${error.message || error}`
+                );
               }
             }
           }
