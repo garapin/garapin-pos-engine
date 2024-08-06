@@ -39,6 +39,7 @@ class TransactionEngine {
         params: {
           limit: 50,
           channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
+          after_id: "txn_5787cf0d-bf78-4445-99aa-577aeffeb048"
         },
       });
     } catch (error) {
