@@ -244,42 +244,68 @@ class RakuEngine {
               // End date in Jakarta time zone
               const endDate = moment
                 .tz(position.end_date, jakartaTimezone)
-                // .startOf("day")
                 .toDate();
               // Start date in Jakarta time zone
               const startDate = moment
                 .tz(position.start_date, jakartaTimezone)
-                // .startOf("day")
                 .toDate();
               // End date with due date added in Jakarta time zone
               const endDateWithDueDate = moment(endDate)
                 .add(dueDateInDays, "days")
                 .toDate();
 
-              // Check and update the position status
               if (position.status === "RENT") {
-                // if (position.name_position==='Posisi A1') {
-                //   console.log('====================================');
-                //   console.log(position,
-                //     today.getTime() > endDate.getTime(),
-                //     today.getTime() > endDateWithDueDate.getTime(),
-                //     moment(position.available_date).format("MMMM DD YYYY, h:mm:ss a"),
-                //     moment(endDate).format("MMMM DD YYYY, h:mm:ss a")
-                //   );
+                // Tanggal akhir dan awal dalam format Jakarta timezone
+                const endDateR = moment
+                  .tz(position.end_date, jakartaTimezone)
+                  .startOf("day")
+                  .toDate();
+                const startDateR = moment
+                  .tz(position.start_date, jakartaTimezone)
+                  .startOf("day")
+                  .toDate();
 
-                //   console.log('====================================');
-                // }
-                if (
-                  today.getTime() > endDate.getTime() &&
-                  today.getTime() <= endDateWithDueDate.getTime()
-                ) {
-                  position.status = "IN_COMING";
-                  position.available_date = endDateWithDueDate;
-                } else if (today.getTime() > endDateWithDueDate.getTime()) {
-                  position.status = "AVAILABLE";
-                  position.available_date = today;
+                const availableDate = moment(endDate).add(1, "second").toDate();
+
+                // Menghitung jarak hari antara startDate dan endDate
+                const duration = moment.duration(
+                  moment(endDateR).diff(moment(startDateR))
+                );
+                const daysDifference = duration.asDays();
+
+                if (daysDifference < 3) {
+                  if (availableDate.getTime() > today.getTime()) {
+                    position.status = "IN_COMING";
+                    position.available_date = availableDate;
+                  } else {
+                    position.status = "AVAILABLE";
+                    position.available_date = today;
+                  }
                 } else {
-                  position.available_date = endDateWithDueDate;
+                  // Mencari dua hari sebelum endDate
+                  const twoDaysBeforeEndDate = moment(endDate)
+                    .subtract(2, "days")
+                    .toDate();
+
+                  if (today.getTime() < twoDaysBeforeEndDate.getTime()) {
+                    // Jika today kurang dari twoDaysBeforeEndDate
+                    position.status = "RENT";
+                    position.available_date = availableDate;
+                  } else if (
+                    today.getTime() >= twoDaysBeforeEndDate.getTime() &&
+                    today.getTime() <= endDate.getTime()
+                  ) {
+                    // Jika today berada antara twoDaysBeforeEndDate dan endDate
+                    position.status = "IN_COMING";
+                    position.available_date = availableDate;
+                  } else if (today.getTime() > availableDate.getTime()) {
+                    // Jika today lebih dari availableDate
+                    position.status = "AVAILABLE";
+                    position.available_date = today;
+                  } else {
+                    position.status = "MUNGKINKAH";
+                    position.available_date = availableDate;
+                  }
                 }
               } else if (position.status === "IN_COMING") {
                 if (today.getTime() > endDateWithDueDate.getTime()) {
