@@ -13,6 +13,8 @@ import { rakTypeSchema } from "../../models/rakuRakTypeModel.js";
 import { positionSchema } from "../../models/rakuPositionModel.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
+import { rakuTransactionSchema } from "../../models/rakuTransactionModel.js";
+const ObjectId = mongoose.Types.ObjectId;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,56 +71,49 @@ class RakuEngine {
       throw error; // Opsional, agar error bisa diteruskan ke pemanggil fungsi
     }
   }
-
-  async getXenditTransaction() {
-    const url = `${this.baseUrl}/transactions`;
+  async getAllTransaction(stores) {
     try {
-      const response = await this.fetchTransactions(url);
-      return response.data.data;
-    } catch (error) {
-      Logger.errorLog("Gagal mengambil transaksi", error);
-    }
-  }
+      let allTransactions = [];
 
-  async fetchTransactions(url) {
-    try {
-      return axios.get(url, {
-        headers: {
-          Authorization: `Basic ${Buffer.from(this.apiKey + ":").toString("base64")}`,
-          "for-user-id": this.accountId,
-        },
-        params: {
-          limit: 15,
-          channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
-        },
-      });
+      for (const store of stores) {
+        const storeDatabase = await connectTargetDatabase(store.db_name);
+
+        const rakuTransactionModelStore = storeDatabase.model(
+          "rakTransaction",
+          rakuTransactionSchema
+        );
+
+        const rakTransactions = await rakuTransactionModelStore.find();
+        if (rakTransactions.length > 0) {
+          const p = rakTransactions.filter(
+            (x) => x.payment_status === "PENDING"
+          );
+          allTransactions.push(...p);
+        }
+      }
+
+      return allTransactions;
     } catch (error) {
-      Logger.errorLog("Gagal mengambil transaksi", error);
+      console.error("Error fetching raks:", error);
+      throw error; // Opsional, agar error bisa diteruskan ke pemanggil fungsi
     }
   }
 
   async checkprocessStatus() {
     try {
-      const [transactions, allStore] = await Promise.all([
-        this.getXenditTransaction(),
-        this.getAllStore(),
-      ]);
+      const [allStore] = await Promise.all([this.getAllStore()]);
 
-      // Proses filter raku store
-      const rakuStore = allStore;
-      // .filter(
-      //   (store) =>
-      //     // store.db_name.startsWith("om")
-      // );
-
-      const allStoresWithRaks = await this.getAllRak(rakuStore);
-
-      for (const raks of allStoresWithRaks.filter(
+      const allStoresWithRaks = await this.getAllRak(allStore);
+      const allTransactions = await this.getAllTransaction(allStore);
+      const filterAllRaks = allStoresWithRaks.filter(
         (x) => x.allRaks.length > 0
-      )) {
+      );
+
+      for (const raks of filterAllRaks) {
         const resultStatusPosition = await this.updateStatusPosition(
           raks.allRaks,
-          raks.positionModelStore
+          raks.positionModelStore,
+          allTransactions
         );
 
         if (resultStatusPosition) {
@@ -133,127 +128,37 @@ class RakuEngine {
     }
   }
 
-  // async updateStatusPosition(allRaks, positionModelStore) {
-  //   try {
-  //     const updatedRaks = await Promise.all(
-  //       allRaks.map(async (rak) => {
-  //         await Promise.all(
-  //           rak.positions.map(async (position) => {
-  //             const today = new Date();
-
-  //             const endDate = new Date(position.end_date);
-  //             const startDate = new Date(position.start_date);
-  //             startDate.setHours(0, 0, 0, 0);
-  //             const dueDateInDays = 2;
-  //             const payDuration = 1200 * 60 * 1000;
-  //             const endDateWithDueDate = new Date(endDate);
-  //             endDateWithDueDate.setDate(endDate.getDate() + dueDateInDays);
-
-  //             if (position.status === "RENT") {
-  //               today.setHours(0, 0, 0, 0);
-  //               endDate.setHours(0, 0, 0, 0);
-  //               endDateWithDueDate.setHours(0, 0, 0, 0);
-
-  //               if (
-  //                 today.getTime() > endDate.getTime() &&
-  //                 today.getTime() <= endDateWithDueDate.getTime()
-  //               ) {
-  //                 position.status = "IN_COMING";
-  //                 position.available_date = endDateWithDueDate;
-  //               } else if (today.getTime() > endDateWithDueDate.getTime()) {
-  //                 position.status = "AVAILABLE";
-  //                 position.available_date = today;
-  //               }
-  //             } else if (position.status === "IN_COMING") {
-  //               const todayMidNight = today.getTime();
-  //               const endMidNight = endDateWithDueDate.getTime();
-  //               today.setHours(0, 0, 0, 0);
-
-  //               if (todayMidNight > endMidNight) {
-  //                 position.status = "AVAILABLE";
-  //                 position.available_date = today;
-  //               }
-  //             } else if (position.status === "UNPAID") {
-  //               const nowNPayDuration = new Date(today.getTime() + payDuration);
-  //               if (startDate.getTime() < nowNPayDuration.getTime()) {
-  //                 position.status = "AVAILABLE";
-  //                 position.available_date = today;
-  //               }
-  //             } else if (position.status === "EXPIRED") {
-  //               position.status = "AVAILABLE";
-  //               position.available_date = today;
-  //             } else if (position.status === "AVAILABLE") {
-  //               position.status = "AVAILABLE";
-  //               position.available_date = today;
-  //             }
-
-  //             return {
-  //               _id: position._id,
-  //               status: position.available_date,
-  //               available_date: position.available_date,
-  //             };
-  //           })
-  //         );
-  //         return rak;
-  //       })
-  //     );
-
-  //     // Setelah mendapatkan semua update, lakukan operasi update ke database
-  //     for (const rak of updatedRaks) {
-  //       for (const position of rak.positions) {
-  //         try {
-  //           const update = await positionModelStore.updateOne(
-  //             { _id: position._id },
-  //             {
-  //               status: position.status,
-  //               available_date: position.available_date,
-  //               ...(position.status === "AVAILABLE" && {
-  //                 $unset: { end_date: "", start_date: "" },
-  //               }),
-  //             }
-  //           );
-  //         } catch (error) {
-  //           console.error(`Failed to update position ${position._id}: `, error);
-  //         }
-  //       }
-  //     }
-  //     return updatedRaks;
-  //   } catch (error) {
-  //     console.error("An error occurred during the update process: ", error);
-  //     throw error;
-  //   }
-  // }
-  async updateStatusPosition(allRaks, positionModelStore) {
+  async updateStatusPosition(allRaks, positionModelStore, allTransactions) {
     try {
-      // Define Jakarta time zone and other constants
       const jakartaTimezone = "Asia/Jakarta";
       const dueDateInDays = 2;
       const payDuration = 1200 * 60 * 1000; // 1200 minutes in milliseconds
+
+      // Helper function to check if invoice has expired
+      const isInvoiceExpired = (expiryDate) => {
+        // Mendapatkan tanggal saat ini dalam zona waktu Jakarta
+        const today = moment().tz(jakartaTimezone).startOf("day");
+        // Mendapatkan tanggal kadaluarsa dalam zona waktu Jakarta
+        const expiry = moment.tz(expiryDate, jakartaTimezone).startOf("day");
+        // Memeriksa apakah tanggal hari ini lebih besar dari tanggal kadaluarsa
+        return today.isSameOrAfter(expiry);
+      };
 
       // Process each rak and its positions
       const updatedRaks = await Promise.all(
         allRaks.map(async (rak) => {
           await Promise.all(
             rak.positions.map(async (position) => {
-              // Current date in Jakarta time zone
-              const today = moment()
-                .tz(jakartaTimezone)
-                // .startOf("day")
-                .toDate();
-
-              // End date in Jakarta time zone
+              const today = moment().tz(jakartaTimezone).toDate();
               const endDate = moment
                 .tz(position.end_date, jakartaTimezone)
-                .toDate();
-              // Start date in Jakarta time zone
-              const startDate = moment
-                .tz(position.start_date, jakartaTimezone)
                 .toDate();
               // End date with due date added in Jakarta time zone
               const endDateWithDueDate = moment(endDate)
                 .add(dueDateInDays, "days")
                 .toDate();
 
+              const availableDate = moment(endDate).add(1, "second").toDate();
               if (position.status === "RENT") {
                 // Tanggal akhir dan awal dalam format Jakarta timezone
                 const endDateR = moment
@@ -265,13 +170,9 @@ class RakuEngine {
                   .startOf("day")
                   .toDate();
 
-                const availableDate = moment(endDate).add(1, "second").toDate();
-
-                // Menghitung jarak hari antara startDate dan endDate
-                const duration = moment.duration(
-                  moment(endDateR).diff(moment(startDateR))
-                );
-                const daysDifference = duration.asDays();
+                const daysDifference = moment
+                  .duration(moment(endDateR).diff(moment(startDateR)))
+                  .asDays();
 
                 if (daysDifference < 3) {
                   if (availableDate.getTime() > today.getTime()) {
@@ -308,17 +209,30 @@ class RakuEngine {
                   }
                 }
               } else if (position.status === "IN_COMING") {
-                if (today.getTime() > endDateWithDueDate.getTime()) {
+                if (today.getTime() > availableDate.getTime()) {
+                  // Jika today lebih dari availableDate
+                  position.status = "AVAILABLE";
+                  position.available_date = today;
+                } else if (today.getTime() > endDateWithDueDate.getTime()) {
                   position.status = "AVAILABLE";
                   position.available_date = today;
                 } else {
                   position.available_date = endDateWithDueDate;
                 }
               } else if (position.status === "UNPAID") {
-                const nowNPayDuration = new Date(today.getTime() + payDuration);
-                if (startDate.getTime() < nowNPayDuration.getTime()) {
-                  position.status = "AVAILABLE";
-                  position.available_date = today;
+                // Find the transaction that includes this position
+                const transaction = allTransactions.find((transaction) =>
+                  transaction.list_rak.some(
+                    (r) => r.position.toString() === position._id.toString()
+                  )
+                );
+
+                if (transaction) {
+                  if (isInvoiceExpired(transaction?.xendit_info?.expiryDate)) {
+                    position.status = "AVAILABLE";
+                    position.available_date = today;
+                    console.log("isInvoiceExpired");
+                  }
                 }
               } else if (
                 position.status === "EXPIRED" ||
