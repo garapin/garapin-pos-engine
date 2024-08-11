@@ -155,10 +155,23 @@ class RakuEngine {
                 .diff(moment.tz(start_date, timezones), "days");
 
               if (position.status === "RENT") {
+                // console.log(
+                //   "====================================",
+                //   moment(start_date).format("DD-MM-YYYY|HH:mm:ss"),
+                //   moment(end_date).format("DD-MM-YYYY|HH:mm:ss"),
+                //   moment(available_date).format("DD-MM-YYYY|HH:mm:ss"),
+                //   position,
+                //   total_rent,
+                //   "kurang dari 3",
+                //   available_date.toDate() > today,
+                //   "===================================="
+                // );
                 if (total_rent < 3) {
                   if (available_date.toDate() < today) {
                     position.status = "AVAILABLE";
                     position.available_date = today;
+                  }else{
+                    position.status = "IN_COMING";
                   }
                 } else {
                   const twoDaysBeforeEndDate = moment
@@ -187,16 +200,7 @@ class RakuEngine {
                   }
                 }
               } else if (position.status === "IN_COMING") {
-                // console.debug(
-                //   "====================================",
-                //   moment(start_date).format("DD-MM-YYYY|HH:mm:ss"),
-                //   moment(end_date).format("DD-MM-YYYY|HH:mm:ss"),
-                //   moment(available_date).format("DD-MM-YYYY|HH:mm:ss"),
-                //   position,
-                //   total_rent,
-                //   "kurang dari 3",
-                //   "===================================="
-                // );
+                
                 if (available_date.toDate() < today) {
                   position.status = "AVAILABLE";
                   position.available_date = today;
