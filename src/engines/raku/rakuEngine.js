@@ -14,17 +14,15 @@ import { positionSchema } from "../../models/rakuPositionModel.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
 import { rakuTransactionSchema } from "../../models/rakuTransactionModel.js";
+import { ConfigAppModel } from "../../models/configAppModel.js";
 const ObjectId = mongoose.Types.ObjectId;
+const timezones = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class RakuEngine {
   constructor() {
-    this.apiKey = process.env.XENDIT_API_KEY;
-    this.accountId = process.env.XENDIT_ACCOUNT_GARAPIN;
-    this.baseUrl = "https://api.xendit.co";
-    this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
       minWorkers: "max",
     });
@@ -130,18 +128,15 @@ class RakuEngine {
 
   async updateStatusPosition(allRaks, positionModelStore, allTransactions) {
     try {
-      const jakartaTimezone = "Asia/Jakarta";
-      const dueDateInDays = 2;
-      const payDuration = 1200 * 60 * 1000; // 1200 minutes in milliseconds
+      const configApp = await ConfigAppModel.findOne();
+      const due_date = configApp.due_date;
+      const today = moment().tz(timezones).toDate();
 
       // Helper function to check if invoice has expired
       const isInvoiceExpired = (expiryDate) => {
-        // Mendapatkan tanggal saat ini dalam zona waktu Jakarta
-        const today = moment().tz(jakartaTimezone).startOf("day");
-        // Mendapatkan tanggal kadaluarsa dalam zona waktu Jakarta
-        const expiry = moment.tz(expiryDate, jakartaTimezone).startOf("day");
+        const expiry = moment.tz(expiryDate, timezones).startOf("day");
         // Memeriksa apakah tanggal hari ini lebih besar dari tanggal kadaluarsa
-        return today.isSameOrAfter(expiry);
+        return moment(today).isSameOrAfter(expiry);
       };
 
       // Process each rak and its positions
@@ -149,75 +144,65 @@ class RakuEngine {
         allRaks.map(async (rak) => {
           await Promise.all(
             rak.positions.map(async (position) => {
-              const today = moment().tz(jakartaTimezone).toDate();
-              const endDate = moment
-                .tz(position.end_date, jakartaTimezone)
-                .toDate();
-              // End date with due date added in Jakarta time zone
-              const endDateWithDueDate = moment(endDate)
-                .add(dueDateInDays, "days")
-                .toDate();
+              const start_date = moment.tz(position.start_date, timezones);
+              const end_date = moment.tz(position.end_date, timezones);
+              const available_date = moment.tz(
+                position.available_date,
+                timezones
+              );
+              const total_rent = moment
+                .tz(end_date, timezones)
+                .diff(moment.tz(start_date, timezones), "days");
 
-              const availableDate = moment(endDate).add(1, "second").toDate();
               if (position.status === "RENT") {
-                // Tanggal akhir dan awal dalam format Jakarta timezone
-                const endDateR = moment
-                  .tz(position.end_date, jakartaTimezone)
-                  .startOf("day")
-                  .toDate();
-                const startDateR = moment
-                  .tz(position.start_date, jakartaTimezone)
-                  .startOf("day")
-                  .toDate();
-
-                const daysDifference = moment
-                  .duration(moment(endDateR).diff(moment(startDateR)))
-                  .asDays();
-
-                if (daysDifference < 3) {
-                  if (availableDate.getTime() > today.getTime()) {
-                    position.status = "IN_COMING";
-                    position.available_date = availableDate;
-                  } else {
+                if (total_rent < 3) {
+                  if (available_date.toDate() < today) {
                     position.status = "AVAILABLE";
                     position.available_date = today;
                   }
                 } else {
-                  // Mencari dua hari sebelum endDate
-                  const twoDaysBeforeEndDate = moment(endDate)
-                    .subtract(2, "days")
+                  const twoDaysBeforeEndDate = moment
+                    .tz(available_date, timezones)
+                    .subtract(due_date, "days")
                     .toDate();
 
-                  if (today.getTime() < twoDaysBeforeEndDate.getTime()) {
-                    // Jika today kurang dari twoDaysBeforeEndDate
-                    position.status = "RENT";
-                    position.available_date = availableDate;
-                  } else if (
-                    today.getTime() >= twoDaysBeforeEndDate.getTime() &&
-                    today.getTime() <= endDate.getTime()
+                  // Konversi tanggal ke objek moment dengan zona waktu yang sesuai
+                  const twoDaysBeforeEnd = moment.tz(
+                    twoDaysBeforeEndDate,
+                    timezones
+                  );
+
+                  if (
+                    twoDaysBeforeEnd.isBetween(
+                      available_date,
+                      end_date,
+                      null,
+                      "[]"
+                    )
                   ) {
-                    // Jika today berada antara twoDaysBeforeEndDate dan endDate
                     position.status = "IN_COMING";
-                    position.available_date = availableDate;
-                  } else if (today.getTime() > availableDate.getTime()) {
-                    // Jika today lebih dari availableDate
+                  } else if (available_date.toDate() < today) {
                     position.status = "AVAILABLE";
                     position.available_date = today;
-                  } else {
-                    position.status = "MUNGKINKAH";
-                    position.available_date = availableDate;
                   }
                 }
               } else if (position.status === "IN_COMING") {
-                if (today.getTime() > availableDate.getTime()) {
-                  // Jika today lebih dari availableDate
+                // console.debug(
+                //   "====================================",
+                //   moment(start_date).format("DD-MM-YYYY|HH:mm:ss"),
+                //   moment(end_date).format("DD-MM-YYYY|HH:mm:ss"),
+                //   moment(available_date).format("DD-MM-YYYY|HH:mm:ss"),
+                //   position,
+                //   total_rent,
+                //   "kurang dari 3",
+                //   "===================================="
+                // );
+                if (available_date.toDate() < today) {
                   position.status = "AVAILABLE";
                   position.available_date = today;
-                } else if (today.getTime() > endDateWithDueDate.getTime()) {
+                } else if (end_date.toDate() < today) {
                   position.status = "AVAILABLE";
                   position.available_date = today;
-                } else {
-                  position.available_date = endDateWithDueDate;
                 }
               } else if (position.status === "UNPAID") {
                 // Find the transaction that includes this position
@@ -231,7 +216,6 @@ class RakuEngine {
                   if (isInvoiceExpired(transaction?.xendit_info?.expiryDate)) {
                     position.status = "AVAILABLE";
                     position.available_date = today;
-                    console.log("isInvoiceExpired");
                   }
                 }
               } else if (
@@ -257,9 +241,10 @@ class RakuEngine {
       // Update the database with the new status and availability date
       for (const rak of updatedRaks) {
         for (const position of rak.positions) {
-          // console.debug(
-          //   moment(position.available_date).format("MMMM Do YYYY, h:mm:ss a")
-          // );
+          console.log(
+            moment(position.available_date).format("DD-MM-YYYY|HH:mm:ss"),
+            position
+          );
           try {
             await positionModelStore.updateOne(
               { _id: position._id },
