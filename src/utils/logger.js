@@ -12,6 +12,9 @@ class Logger {
     static errorLog(message, error) {
         Logger.log(`${message}: ${error}`, 'ERROR');
     }
+    static error(message, error) {
+        Logger.log(`${message}: ${error}`, 'ERROR');
+    }
 }
 
 export default Logger;

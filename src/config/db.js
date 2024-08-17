@@ -5,11 +5,14 @@ mongoose.set('strictQuery', false);
 const MONGODB_URI = process.env.MONGODB_URI;
 
 const connectToDatabase = async () => {
+  console.log(MONGODB_URI);
+  
   try {
     mongoose.connect(`${MONGODB_URI}/garapin_pos?authSource=admin`, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       minPoolSize: 5,
+      connectTimeoutMS : 30000,  // 30 seconds
       maxPoolSize: 50
     });
     console.log(`Connected to the ${MONGODB_URI}/garapin_pos`);

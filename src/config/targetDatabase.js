@@ -9,6 +9,7 @@ const CONNECTION_TIMEOUT = 1 * 60 * 1000; // 1 minutes
 const checkDatabaseExists = async (databaseName) => {
   const adminConnection = await mongoose.createConnection(`${MONGODB_URI}/admin`, {
     useNewUrlParser: true,
+    connectTimeoutMS: 30000, 
     useUnifiedTopology: true,
   }).asPromise(); // Short-lived connection, no pool size set
 
@@ -40,6 +41,7 @@ const connectTargetDatabase = async (databaseName) => {
     const connection = await mongoose.createConnection(`${MONGODB_URI}/${databaseName}?authSource=admin`, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      connectTimeoutMS: 30000, 
       minPoolSize: 5,
       maxPoolSize: 50
     }).asPromise(); // Long-lived connection, pool size set

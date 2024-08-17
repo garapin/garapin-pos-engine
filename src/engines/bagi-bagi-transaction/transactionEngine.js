@@ -98,8 +98,14 @@ class TransactionEngine {
   }
 
   async getAllStore() {
-    const allStore = await DatabaseModel.find();
-    return allStore;
+    try {
+      
+      const allStore = await DatabaseModel.find();
+      return allStore;
+    } catch (error) {
+      print.error("Error fetching all store data", error);
+    }
+    
 }
 
   async closePool() {
