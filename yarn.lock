@@ -291,10 +291,17 @@
     "@smithy/types" "^3.3.0"
     tslib "^2.6.2"
 
+<<<<<<< HEAD
 "@aws-sdk/credential-provider-node@3.632.0":
   version "3.632.0"
   resolved "https://registry.npmjs.org/@aws-sdk/credential-provider-node/-/credential-provider-node-3.632.0.tgz"
   integrity sha512-cL8fuJWm/xQBO4XJPkeuZzl3XinIn9EExWgzpG48NRMKR5us1RI/ucv7xFbBBaG+r/sDR2HpYBIA3lVIpm1H3Q==
+=======
+"@aws-sdk/credential-provider-node@^3.515.0", "@aws-sdk/credential-provider-node@3.515.0":
+  version "3.515.0"
+  resolved "https://registry.npmjs.org/@aws-sdk/credential-provider-node/-/credential-provider-node-3.515.0.tgz"
+  integrity sha512-Y4kHSpbxksiCZZNcvsiKUd8Fb2XlyUuONEwqWFNL82ZH6TCCjBGS31wJQCSxBHqYcOL3tiORUEJkoO7uS30uQA==
+>>>>>>> 8ac29578324322c6529a81ea894d2a8424d49641
   dependencies:
     "@aws-sdk/credential-provider-env" "3.620.1"
     "@aws-sdk/credential-provider-http" "3.622.0"
@@ -1088,9 +1095,15 @@ acorn-jsx@^5.3.2:
   integrity sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==
 
 "acorn@^6.0.0 || ^7.0.0 || ^8.0.0", acorn@^8.9.0:
+<<<<<<< HEAD
   version "8.12.1"
   resolved "https://registry.npmjs.org/acorn/-/acorn-8.12.1.tgz"
   integrity sha512-tcpGyI9zbizT9JbV6oYE477V6mTlXvvi0T0G3SNIYE2apm/G5huBa1+K89VGeovbg+jycCrfhl3ADxErOuO6Jg==
+=======
+  version "8.11.3"
+  resolved "https://registry.npmjs.org/acorn/-/acorn-8.11.3.tgz"
+  integrity sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==
+>>>>>>> 8ac29578324322c6529a81ea894d2a8424d49641
 
 agent-base@6:
   version "6.0.2"
@@ -3682,9 +3695,15 @@ typed-array-length@^1.0.6:
     possible-typed-array-names "^1.0.0"
 
 typescript@^5.2.2, typescript@>=4.2.0:
+<<<<<<< HEAD
   version "5.5.4"
   resolved "https://registry.npmjs.org/typescript/-/typescript-5.5.4.tgz"
   integrity sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==
+=======
+  version "5.4.2"
+  resolved "https://registry.npmjs.org/typescript/-/typescript-5.4.2.tgz"
+  integrity sha512-+2/g0Fds1ERlP6JsakQQDXjZdZMM+rqpamFZJEKh4kwTIn3iDkgKtby0CeNd5ATNZ4Ry1ax15TMx0W2V+miizQ==
+>>>>>>> 8ac29578324322c6529a81ea894d2a8424d49641
 
 unbox-primitive@^1.0.2:
   version "1.0.2"
