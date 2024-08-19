@@ -73,11 +73,14 @@ class RakServices {
        element.list_rak.forEach(async (colrak) => {
           const rak = await rakModelStore.findById(colrak.rak);
           const position = await positionModelStore.findById(colrak.position);
-          if (rak) {          
+          if (rak ) {          
             rak.status = "AVAILABLE";
             rak.save();
-            position.status ="AVAILABLE";
-            position.save();
+            if (position.status === STATUS_POSITION.UNPAID)  {
+              position.status =STATUS_POSITION.AVAILABLE;
+              position.save();
+            }
+          
           }
         });
       }
