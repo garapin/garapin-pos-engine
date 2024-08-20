@@ -6,6 +6,8 @@ import { PositionModel, positionSchema } from "../../models/positionModel.js";
 import Logger from "../../utils/logger.js";
 import isExpired from "../one-mart/timetools.js";
 import mongoose from '../../config/db.js';
+import { configAppSchema } from "../../models/configAppModel.js";
+import moment from'moment-timezone';
 
 import {STATUS_RAK} from "../../models/rakModel.js";
 import { STATUS_POSITION } from "../../models/positionModel.js";
@@ -50,9 +52,11 @@ class RakServices {
 
 
   updateRakSingleDatabase = async (targetDatabase) => {
-   
-    const storeDatabase = await connectTargetDatabase(targetDatabase);
 
+
+    const storeDatabase = await connectTargetDatabase(targetDatabase);
+    const confModel = storeDatabase.model("config_app", configAppSchema);
+    const configApp = await confModel.findOne();
 
     const rakTransactionModelStore = storeDatabase.model(
       "rakTransaction",
@@ -62,35 +66,81 @@ class RakServices {
     const positionModelStore = storeDatabase.model("position", positionSchema);
   
   
-    const pending_transactions = await rakTransactionModelStore.find({ payment_status: "PENDING" }).populate({ path: "list_rak" });
-    console.log("checking database: ", targetDatabase);
-    pending_transactions.forEach(element => {
-      console.log(element.xendit_info.expiryDate);
-      const expiryDate =element.xendit_info.expiryDate;
-      if (isExpired(expiryDate)) {
-        element.payment_status = "EXPIRED";
-        element.save();
-       element.list_rak.forEach(async (colrak) => {
-          const rak = await rakModelStore.findById(colrak.rak);
-          const position = await positionModelStore.findById(colrak.position);
-          if (rak ) {          
-            rak.status = "AVAILABLE";
-            rak.save();
-            if (position.status === STATUS_POSITION.UNPAID)  {
-              position.status =STATUS_POSITION.AVAILABLE;
-              position.save();
-            }
+    // const pending_transactions = await rakTransactionModelStore.find({ payment_status: "PENDING" }).populate({ path: "list_rak" });
+    // console.log("checking database: ", targetDatabase);
+    // pending_transactions.forEach(element => {
+    //   console.log(element.xendit_info.expiryDate);
+    //   const expiryDate =element.xendit_info.expiryDate;
+    //   if (isExpired(expiryDate)) {
+    //     element.payment_status = "EXPIRED";
+    //     element.save();
+    //    element.list_rak.forEach(async (colrak) => {
+    //       const rak = await rakModelStore.findById(colrak.rak);
+    //       const position = await positionModelStore.findById(colrak.position);
+    //       if (rak ) {          
+    //         rak.status = "AVAILABLE";
+    //         rak.save();
+    //         if (position.status === STATUS_POSITION.UNPAID)  {
+    //           position.status =STATUS_POSITION.AVAILABLE;
+    //           position.save();
+    //         }
           
-          }
-        });
-      }
-  
-  
-  
-  
-  
-       });
+    //       }
+    //     });
+    //   }  
+    //    });
 
+
+       const alltransaction = await rakTransactionModelStore.find().populate({ path: "list_rak" });
+       const today = moment().tz('GMT').format();      
+
+       alltransaction.forEach(element => {
+        if (element.payment_status === "PENDING"  && element) {
+          const expiryDate =element.xendit_info.expiryDate;
+          if (isExpired(expiryDate)) {
+            element.payment_status = "EXPIRED";
+            element.save();
+           element.list_rak.forEach(async (colrak) => {
+              const rak = await rakModelStore.findById(colrak.rak);
+              const position = await positionModelStore.findById(colrak.position);
+              if (rak ) {          
+                rak.status = "AVAILABLE";
+                rak.save();
+                if (position.status === STATUS_POSITION.UNPAID)  {
+                  position.status =STATUS_POSITION.AVAILABLE;
+                  position.save();
+                }
+              
+              }
+            });
+          } 
+        }
+
+        element.list_rak.forEach(async (colrak) => {
+          const position = await positionModelStore.findById(colrak.position);
+          const end_date =moment(position.end_date);
+          const daysUntilDue = end_date.diff(today, 'days');
+          const isDueDate = daysUntilDue <= configApp.due_date && daysUntilDue >= 0;
+
+          const availabledate = position.available_date;
+          if (availabledate < today && position.status === STATUS_POSITION.RENTED)  {
+            position.status = STATUS_POSITION.AVAILABLE;
+            position.start_date= null;
+            position.end_date= null;
+            position.available_date=today;
+            position.save();        
+            
+          }
+          if (isDueDate && position.status === STATUS_POSITION.RENTED)  {
+            position.status = STATUS_POSITION.INCOMING;
+            position.save();        
+            
+          }
+          
+
+        });
+
+       });
 
   }
 
