@@ -11,20 +11,20 @@ const cashPaymentEngine = new CashPaymentEngine();
 const mainRakWorker = new MainRakWorker();
 function setupCronJobs() {
     const schedule = process.env.CRON_SCHEDULE || '0 * * * *';
-    cron.schedule(schedule, () => {
-        Logger.log('Menjalankan cron job VA and QRIS checked Transaction');
-        transactionEngine.processTransactions();
-    });
+    // cron.schedule(schedule, () => {
+    //     Logger.log('Menjalankan cron job VA and QRIS checked Transaction');
+    //     transactionEngine.processTransactions();
+    // });
 
-    cron.schedule(schedule, () => {
-        Logger.log('Menjalankan cron check payment CASH');
-        cashPaymentEngine.checkPaymentCash();
-    });
+    // cron.schedule(schedule, () => {
+    //     Logger.log('Menjalankan cron check payment CASH');
+    //     cashPaymentEngine.checkPaymentCash();
+    // });
 
-     cron.schedule(schedule, () => {
-        Logger.log('Menjalankan cron check RAK');
-       mainRakWorker.runRakWorker();
-    });
+    //  cron.schedule(schedule, () => {
+    //     Logger.log('Menjalankan cron check RAK');
+    //    mainRakWorker.runRakWorker();
+    // });
 }
 
 export default setupCronJobs;
