@@ -54,6 +54,8 @@ class RakServices {
   updateRakSingleDatabase = async (targetDatabase) => {
 
 
+    Logger.log(`Update status RAK pada ${targetDatabase}`,'INFO');
+
     const storeDatabase = await connectTargetDatabase(targetDatabase);
     const confModel = storeDatabase.model("config_app", configAppSchema);
     const configApp = await confModel.findOne();
@@ -69,6 +71,8 @@ class RakServices {
        const today = moment().tz('GMT').format();      
 
        alltransaction.forEach(element => {
+
+
         if (element.payment_status === "PENDING"  && element) {
           const expiryDate =element.xendit_info.expiryDate;
           if (timetools.isExpired(expiryDate)) {
@@ -80,48 +84,59 @@ class RakServices {
                 if (position.end_date) {
                  position.status = timetools.isIncoming(position,configApp.due_date) ? STATUS_POSITION.INCOMING : STATUS_POSITION.RENTED;
                 }
-                else {
-                  position.status =STATUS_POSITION.AVAILABLE;                  
-                }
                 position.save();
+               
               }
             });
           } 
         }
-
+     
+        else {
         element.list_rak.forEach(async (colrak) => {
           const position = await positionModelStore.findById(colrak.position);
 
-          const availabledate =moment(position.available_date).tz('GMT');
-          if (availabledate.isBefore(today)  && position.status === STATUS_POSITION.RENTED)  {
-            position.status = STATUS_POSITION.AVAILABLE;
-            position.start_date= null;
-            position.end_date= null;
-            position.available_date=today;
-            position.save();        
             
-          }
-          if (timetools.isIncoming(position,configApp.due_date) && position.status === STATUS_POSITION.RENTED)  {
-            position.status = STATUS_POSITION.INCOMING;
-            
-            position.save();        
-            
-          }
-
-
-
           if (timetools.isExpired(position.end_date))  {
+
             position.status = STATUS_POSITION.AVAILABLE;
             position.available_date = today;
             position.start_date= null;
             position.end_date= null;
-            position.save();
           }
-          
+
+          else if (timetools.isIncoming(position,configApp.due_date))  {
+            
+            position.status = STATUS_POSITION.INCOMING;            
+            
+          }
+          else if (position.status !== STATUS_POSITION.AVAILABLE) {    
+             console.log("rented");
+                  
+            position.status = STATUS_POSITION.RENTED;            
+          }
+
+           
+          else {
+            console.log("AVAILABLE");
+            position.status =STATUS_POSITION.AVAILABLE;    
+            position.available_date = today;
+            position.start_date= null;
+            position.end_date= null;
+
+          }
+
+          position.save();
+        
+
 
         });
+       }
+    
+
 
        });
+      //  storeDatabase.close();
+
 
   }
 
