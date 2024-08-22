@@ -3,7 +3,7 @@ export const STATUS_POSITION = Object.freeze({
   AVAILABLE: "AVAILABLE",
   UNPAID: "UNPAID",
   RENTED: "RENT",
-  INCOMING : "INCOMING",
+  INCOMING : "IN_COMING",
 });
 const positionSchema = new mongoose.Schema(
   {
