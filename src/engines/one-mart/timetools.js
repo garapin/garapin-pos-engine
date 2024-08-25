@@ -10,12 +10,12 @@ const  isExpired = ( expiryDate ) => {
     return true;
   }
  
-  console.log(now);
-  console.log(expireddd);
+  // console.log(now);
+  // console.log(expireddd);
 
   console.log("expireddd" +now>expireddd);
   
-  
+  // xxx;
   
   
   return now > expireddd;

@@ -72,7 +72,6 @@ class RakServices {
 
        alltransaction.forEach(element => {
 
-
         if (element.payment_status === "PENDING"  && element) {
           const expiryDate =element.xendit_info.expiryDate;
           if (timetools.isExpired(expiryDate)) {
@@ -94,6 +93,10 @@ class RakServices {
         else {
         element.list_rak.forEach(async (colrak) => {
           const position = await positionModelStore.findById(colrak.position);
+          const rak = await rakModelStore.findById(colrak.rak);
+
+          
+          
 
             
           if (timetools.isExpired(position.end_date))  {
