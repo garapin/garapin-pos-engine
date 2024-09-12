@@ -1,6 +1,6 @@
 import "dotenv/config";
 import Logger from "../../utils/logger.js";
-import workerpool from 'workerpool';
+import workerpool from "workerpool";
 import { DatabaseModel } from "../../models/databaseModel.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -22,29 +22,31 @@ class CashPaymentEngine {
 
     console.time("Worker Pool Cash");
     try {
-        const promises = allStore.map(store => {
-            const storeData = JSON.parse(JSON.stringify(store));
-            return this.pool.exec('processStore', [{ store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey }]);
-        });
-        await Promise.all(promises);
+      const promises = allStore.map((store) => {
+        const storeData = JSON.parse(JSON.stringify(store));
+        return this.pool.exec("processStore", [
+          { store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey },
+        ]);
+      });
+      await Promise.all(promises);
     } catch (error) {
-        Logger.errorLog("Error during worker pool cash", error);
+      Logger.errorLog("Error during worker pool cash", error);
     }
     console.timeEnd("Worker Pool Cash");
   }
 
   async getAllStore() {
-      const allStore = await DatabaseModel.find();
+    const allStore = await DatabaseModel.find();
 
-      const garapinPosStore = {
-        db_name: "garapin_pos",
-      }
+    const garapinPosStore = {
+      db_name: "garapin_pos",
+    };
 
-      allStore.push(garapinPosStore);
+    allStore.push(garapinPosStore);
 
-      console.log("Total Store: ", allStore.length);
-      console.log(allStore);
-      return allStore;
+    console.log("Total Store: ", allStore.length);
+    console.log(allStore);
+    return allStore;
   }
 }
 

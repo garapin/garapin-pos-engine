@@ -2,7 +2,7 @@ import axios from "axios";
 import "dotenv/config";
 import Logger from "../../utils/logger.js";
 import { ChannelCategory } from "../../config/enums.js";
-import workerpool from 'workerpool';
+import workerpool from "workerpool";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DatabaseModel } from "../../models/databaseModel.js";
@@ -16,7 +16,9 @@ class TransactionEngine {
     this.accountId = process.env.XENDIT_ACCOUNT_GARAPIN;
     this.baseUrl = "https://api.xendit.co";
     this.processedTransactions = new Set();
-    this.pool = workerpool.pool(path.resolve(__dirname, 'worker.js'), { minWorkers: 'max' });
+    this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
+      minWorkers: "max",
+    });
   }
 
   async getXenditTransaction() {
@@ -54,10 +56,10 @@ class TransactionEngine {
     try {
       const [transactions, allStore] = await Promise.all([
         this.getXenditTransaction(),
-        this.getAllStore()
+        this.getAllStore(),
       ]);
 
-      const filteredTransactions = transactions.filter(transaction => {
+      const filteredTransactions = transactions.filter((transaction) => {
         if (this.processedTransactions.has(transaction.id)) {
           return false; // Jika transaksi sudah diproses, abaikan
         }
@@ -66,17 +68,31 @@ class TransactionEngine {
       });
 
       // Proses transaksi secara paralel menggunakan worker threads
-      const promises = allStore.map(async store => {
+      const promises = allStore.map(async (store) => {
         const storeData = JSON.parse(JSON.stringify(store));
         const transactionsData = JSON.parse(JSON.stringify(transactions));
         try {
-          const result = await this.pool.exec('processTransaction', [{ transactions: transactionsData, store: storeData, accountId: this.accountId, baseUrl: this.baseUrl, apiKey: this.apiKey }]);
+          const result = await this.pool.exec("processTransaction", [
+            {
+              transactions: transactionsData,
+              store: storeData,
+              accountId: this.accountId,
+              baseUrl: this.baseUrl,
+              apiKey: this.apiKey,
+            },
+          ]);
           Logger.log("Transaction processed:", result);
         } catch (error) {
           if (error instanceof AggregateError) {
-            error.errors.forEach(err => Logger.errorLog(`Error processing transaction: ${err.message || err}`));
+            error.errors.forEach((err) =>
+              Logger.errorLog(
+                `Error processing transaction: ${err.message || err}`
+              )
+            );
           } else {
-            Logger.errorLog(`Error processing transaction: ${error.message || error}`);
+            Logger.errorLog(
+              `Error processing transaction: ${error.message || error}`
+            );
           }
         }
       });
@@ -84,11 +100,14 @@ class TransactionEngine {
       await Promise.all(promises);
     } catch (error) {
       Logger.errorLog(`Error processing transactions: ${error.message}`);
-      if (error.name === 'MongoNetworkError') {
-        Logger.errorLog("Network error while connecting to the database", error);
-      } else if (error.name === 'MongoServerError') {
+      if (error.name === "MongoNetworkError") {
+        Logger.errorLog(
+          "Network error while connecting to the database",
+          error
+        );
+      } else if (error.name === "MongoServerError") {
         Logger.errorLog("Server error while querying the database", error);
-      } else if (error.name === 'ValidationError') {
+      } else if (error.name === "ValidationError") {
         Logger.errorLog("Validation error", error);
       } else {
         Logger.errorLog("An unexpected error occurred", error);
@@ -99,14 +118,12 @@ class TransactionEngine {
 
   async getAllStore() {
     try {
-      
       const allStore = await DatabaseModel.find();
       return allStore;
     } catch (error) {
       print.error("Error fetching all store data", error);
     }
-    
-}
+  }
 
   async closePool() {
     await this.pool.terminate();
