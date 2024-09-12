@@ -26,7 +26,7 @@ const connectTargetDatabase = async (databaseName) => {
   }
 
   if (connectionCache[databaseName]) {
-    // console.log(`Reusing connection for the Database: ${databaseName}`);
+    console.log(`Reusing connection for the Database: ${databaseName}`);
     resetConnectionTimeout(databaseName);
     return connectionCache[databaseName];
   }
