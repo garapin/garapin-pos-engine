@@ -11,7 +11,7 @@ class MainRakWorker {
     // Simpan parameters jika diperlukan
     this.parameters = parameters;
     this.pool = workerpool.pool(path.resolve(__dirname, "rakWorker.js"), {
-      minWorkers: "max",
+      minWorkers: 1,
     });
   }
 

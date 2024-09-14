@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const pool = workerpool.pool(path.resolve(__dirname, "routeWorker.js"), {
-  minWorkers: "max",
+  minWorkers: 1,
 });
 
 const isValidReferenceId = (referenceId) => {

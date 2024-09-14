@@ -11,6 +11,7 @@ import moment from "moment-timezone";
 
 import { STATUS_RAK } from "../../models/rakModel.js";
 import { STATUS_POSITION } from "../../models/positionModel.js";
+import { productSchema } from "../../models/productModel.js";
 class RakServices {
   constructor(parameters) {}
 
@@ -47,6 +48,8 @@ class RakServices {
     const confModel = storeDatabase.model("config_app", configAppSchema);
     const configApp = await confModel.findOne();
 
+    const productModelStore = storeDatabase.model("product", productSchema);
+
     const rakTransactionModelStore = storeDatabase.model(
       "rakTransaction",
       rakTransactionSchema
@@ -76,6 +79,10 @@ class RakServices {
                   ? STATUS_POSITION.INCOMING
                   : STATUS_POSITION.RENTED;
               }
+              console.log("====================================");
+              console.log(position);
+              console.log("====================================");
+              // xxx;
               position.save();
             }
           });
@@ -83,13 +90,33 @@ class RakServices {
       } else {
         element.list_rak.forEach(async (colrak) => {
           const position = await positionModelStore.findById(colrak.position);
-          const rak = await rakModelStore.findById(colrak.rak);
+          // const rak = await rakModelStore.findById(colrak.rak);
 
           if (timetools.isExpired(position.end_date)) {
+            if (position.end_date) {
+              // const product = await productModelStore.find({
+              //   position_id: position._id,
+              // });
+
+              await productModelStore.deleteMany({
+                position_id: position._id,
+              });
+
+              // console.log("====================================");
+              // console.log(product);
+              // console.log(position);
+              // console.log("====================================");
+
+              // xxx;
+            }
             position.status = STATUS_POSITION.AVAILABLE;
             position.available_date = today;
             position.start_date = null;
             position.end_date = null;
+
+            // await productModelStore.deleteMany({
+            //   position_id: position._id,
+            // });
           } else if (timetools.isIncoming(position, configApp.due_date)) {
             position.status = STATUS_POSITION.INCOMING;
           } else if (position.status !== STATUS_POSITION.AVAILABLE) {
