@@ -63,77 +63,51 @@ class RakServices {
     const today = moment().tz("GMT").format();
 
     alltransaction.forEach((element) => {
-      if (element.payment_status === "PENDING" && element) {
-        const expiryDate = element.xendit_info.expiryDate;
-        if (timetools.isExpired(expiryDate)) {
-          element.payment_status = "EXPIRED";
-          element.save();
-          element.list_rak.forEach(async (colrak) => {
-            const position = await positionModelStore.findById(colrak.position);
-            if (position.status === STATUS_POSITION.UNPAID) {
-              if (position.end_date) {
-                position.status = timetools.isIncoming(
-                  position,
-                  configApp.due_date
-                )
-                  ? STATUS_POSITION.INCOMING
-                  : STATUS_POSITION.RENTED;
-              }
-              console.log("====================================");
-              console.log(position);
-              console.log("====================================");
-              // xxx;
-              position.save();
-            }
-          });
-        }
-      } else {
-        element.list_rak.forEach(async (colrak) => {
-          const position = await positionModelStore.findById(colrak.position);
-          // const rak = await rakModelStore.findById(colrak.rak);
+      element.list_rak.forEach(async (colrak) => {
+        const position = await positionModelStore.findById(colrak.position);
+        // const rak = await rakModelStore.findById(colrak.rak);
 
-          if (timetools.isExpired(position.end_date)) {
-            if (position.end_date) {
-              // const product = await productModelStore.find({
-              //   position_id: position._id,
-              // });
-
-              await productModelStore.deleteMany({
-                position_id: position._id,
-              });
-
-              // console.log("====================================");
-              // console.log(product);
-              // console.log(position);
-              // console.log("====================================");
-
-              // xxx;
-            }
-            position.status = STATUS_POSITION.AVAILABLE;
-            position.available_date = today;
-            position.start_date = null;
-            position.end_date = null;
-
-            // await productModelStore.deleteMany({
+        if (timetools.isExpired(position.end_date)) {
+          if (position.end_date) {
+            // const product = await productModelStore.find({
             //   position_id: position._id,
             // });
-          } else if (timetools.isIncoming(position, configApp.due_date)) {
-            position.status = STATUS_POSITION.INCOMING;
-          } else if (position.status !== STATUS_POSITION.AVAILABLE) {
-            console.log("rented");
 
-            position.status = STATUS_POSITION.RENTED;
-          } else {
-            console.log("AVAILABLE");
-            position.status = STATUS_POSITION.AVAILABLE;
-            position.available_date = today;
-            position.start_date = null;
-            position.end_date = null;
+            await productModelStore.deleteMany({
+              position_id: position._id,
+            });
+
+            // console.log("====================================");
+            // console.log(product);
+            // console.log(position);
+            // console.log("====================================");
+
+            // xxx;
           }
+          position.status = STATUS_POSITION.AVAILABLE;
+          position.available_date = today;
+          position.start_date = null;
+          position.end_date = null;
 
-          position.save();
-        });
-      }
+          // await productModelStore.deleteMany({
+          //   position_id: position._id,
+          // });
+        } else if (timetools.isIncoming(position, configApp.due_date)) {
+          position.status = STATUS_POSITION.INCOMING;
+        } else if (position.status !== STATUS_POSITION.AVAILABLE) {
+          console.log("rented");
+
+          position.status = STATUS_POSITION.RENTED;
+        } else {
+          console.log("AVAILABLE");
+          position.status = STATUS_POSITION.AVAILABLE;
+          position.available_date = today;
+          position.start_date = null;
+          position.end_date = null;
+        }
+
+        position.save();
+      });
     });
     // storeDatabase.close();
   };
