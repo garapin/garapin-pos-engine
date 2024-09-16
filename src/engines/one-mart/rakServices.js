@@ -69,13 +69,15 @@ class RakServices {
 
         if (timetools.isExpired(position.end_date)) {
           if (position.end_date) {
-            // const product = await productModelStore.find({
-            //   position_id: position._id,
-            // });
-
-            await productModelStore.deleteMany({
+            const product = await productModelStore.find({
               position_id: position._id,
             });
+            product.status = "DELETED";
+            product.save();
+
+            // await productModelStore.deleteMany({
+            //   position_id: position._id,
+            // });
 
             // console.log("====================================");
             // console.log(product);

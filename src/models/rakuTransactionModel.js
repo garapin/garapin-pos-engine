@@ -16,7 +16,25 @@ export const PAYMENT_STATUS_RAK = Object.freeze({
   STOPPED: "STOPPED",
 });
 
-const rakuTransactionSchema = new mongoose.Schema(
+// # Unpaid
+// Tautan pembayaran sudah berhasil dibuat dan dapat dibayarkan oleh Pelanggan Anda sampai tanggal kedaluwarsa yang Anda tentukan
+
+// # PAID
+// Tautan pembayaran sudah berhasil dibayarkan oleh pelanggan Anda Anda juga bisa mendapatkan pemberitahuan tautan pembayaran yang sudah terbayar melalui email dengan mengaktifkan notifikasi email di Pengaturan Kustomisasi Invoice
+
+// # Settled
+// Dana sudah berhasil diteruskan ke akun Xendit Anda dan dapat ditarik melalui tab Saldo Mohon dicatat bahwa tidak semua tautan pembayaran akan mencapai status ini (contoh: BCA Switcher) dan tidak semuanya akan mencapai status ini secara bersamaan. Waktu penerusan dana bergantung pada metode pembayaran yang digunakan oleh pelanggan Anda
+
+// # EXPIRED
+// Tautan pembayaran telah kedaluwarsa sebelum pelanggan Anda berhasil melakukan pembayaran. Tautan pembayaran tidak dapat lagi dibayarkan atau direaktivasi Anda dapat menyesuaikan waktu kedaluwarsa semua tautan pembayaran Anda di Pengaturan Kustomisasi Invoice, atau atur durasi setiap tautan pembayaran pada saat pembuatan tautan pembayaran
+
+// # ACTIVE
+// Untuk pembayaran berulang dan tautan pembayaran ganda agar terus dikirimkan kepada pelanggan Anda untuk dibayarkan pada jeda dan durasi yang Anda tentukan
+
+// # STOPPED
+// Untuk pembayaran berulang dan tautan pembayaran ganda yang tidak lagi bisa dibuat ulang atau dikirimkan ke pelanggan Anda
+
+const rakTransactionSchema = new mongoose.Schema(
   {
     db_user: {
       type: String,
@@ -25,14 +43,18 @@ const rakuTransactionSchema = new mongoose.Schema(
       {
         rak: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "rak",
+          ref: "rak", // Reference to the Brand model
           required: true,
         },
         position: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "position",
+          ref: "position", // Reference to the Brand model
           required: true,
         },
+        // number_of_days: {
+        //   type: Number,
+        //   required: true,
+        // },
         start_date: {
           type: Date,
           required: true,
@@ -41,6 +63,24 @@ const rakuTransactionSchema = new mongoose.Schema(
           type: Date,
           required: true,
         },
+        // rak_detail: {
+        //   rak_name: {
+        //     type: String,
+        //     required: true,
+        //   },
+        //   price_perday: {
+        //     type: String,
+        //     required: true,
+        //   },
+        //   category_name: {
+        //     type: String,
+        //     required: true,
+        //   },
+        //   type_name: {
+        //     type: String,
+        //     required: true,
+        //   },
+        // },
       },
     ],
     total_harga: {
@@ -127,7 +167,7 @@ const rakuTransactionSchema = new mongoose.Schema(
 
 const RakTransactionModel = mongoose.model(
   "rakTransaction",
-  rakuTransactionSchema
+  rakTransactionSchema
 );
 
-export { RakTransactionModel, rakuTransactionSchema };
+export { RakTransactionModel, rakTransactionSchema };

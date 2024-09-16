@@ -6,12 +6,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Cashflow, SettlementStatus } from "../../config/enums.js";
 import { transactionSchema } from "../../models/transactionModel.js";
+import {
+  rakTransactionSchema,
+  rakuTransactionSchema,
+} from "../../models/rakuTransactionModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const pool = workerpool.pool(path.resolve(__dirname, "routeWorker.js"), {
-  minWorkers: 1,
+  minWorkers: "max",
 });
 
 const isValidReferenceId = (referenceId) => {
@@ -46,6 +50,15 @@ const processTransaction = async ({
           { settlement_status: "SETTLED" }
         );
 
+        const RakuTransactionModel = storeDatabase.model(
+          "rakTransaction",
+          rakTransactionSchema
+        );
+
+        await RakuTransactionModel.updateOne(
+          { invoice: transaction.reference_id },
+          { settlement_status: "SETTLED" }
+        );
         const TemplateModel = storeDatabase.model(
           "Split_Payment_Rule_Id",
           splitPaymentRuleIdScheme
