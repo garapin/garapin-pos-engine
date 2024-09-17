@@ -50,15 +50,15 @@ const processTransaction = async ({
           { settlement_status: "SETTLED" }
         );
 
-        // const RakuTransactionModel = storeDatabase.model(
-        //   "rakTransaction",
-        //   rakTransactionSchema
-        // );
+        const RakuTransactionModel = storeDatabase.model(
+          "rakTransaction",
+          rakTransactionSchema
+        );
 
-        // await RakuTransactionModel.updateOne(
-        //   { invoice: transaction.reference_id },
-        //   { settlement_status: "SETTLED" }
-        // );
+        await RakuTransactionModel.updateOne(
+          { invoice: transaction.reference_id },
+          { settlement_status: "SETTLED" }
+        );
         const TemplateModel = storeDatabase.model(
           "Split_Payment_Rule_Id",
           splitPaymentRuleIdScheme
