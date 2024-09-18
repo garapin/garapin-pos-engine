@@ -25,6 +25,8 @@ class TransactionEngine {
     const url = `${this.baseUrl}/transactions`;
     try {
       const response = await this.fetchTransactions(url);
+      // console.log(response.data.data);
+
       return response.data.data;
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
@@ -33,6 +35,7 @@ class TransactionEngine {
 
   async fetchTransactions(url) {
     try {
+      Logger.log("Mengambil transaksi dari Xendit fetchTransactions");
       return axios.get(url, {
         headers: {
           Authorization: `Basic ${Buffer.from(this.apiKey + ":").toString("base64")}`,
@@ -59,6 +62,8 @@ class TransactionEngine {
         this.getAllStore(),
       ]);
 
+      Logger.log("Total transaksi:", transactions.data);
+
       const filteredTransactions = transactions.filter((transaction) => {
         if (this.processedTransactions.has(transaction.id)) {
           return false; // Jika transaksi sudah diproses, abaikan
@@ -68,10 +73,18 @@ class TransactionEngine {
       });
 
       // Proses transaksi secara paralel menggunakan worker threads
+      // console.log("====================================");
+      // console.log(this.accountId);
+      // console.log(this.baseUrl);
+      // console.log(this.apiKey);
+      // console.log("====================================");
       const promises = allStore.map(async (store) => {
         const storeData = JSON.parse(JSON.stringify(store));
         const transactionsData = JSON.parse(JSON.stringify(transactions));
+
         try {
+          console.log(transactionsData);
+
           const result = await this.pool.exec("processTransaction", [
             {
               transactions: transactionsData,
@@ -86,12 +99,12 @@ class TransactionEngine {
           if (error instanceof AggregateError) {
             error.errors.forEach((err) =>
               Logger.errorLog(
-                `Error processing transaction: ${err.message || err}`
+                `Error processing transaction pool: ${err.message || err}`
               )
             );
           } else {
             Logger.errorLog(
-              `Error processing transaction: ${error.message || error}`
+              `Error processing transactionss: ${error.name}: ${error.message || error}`
             );
           }
         }

@@ -6,10 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Cashflow, SettlementStatus } from "../../config/enums.js";
 import { transactionSchema } from "../../models/transactionModel.js";
-import {
-  rakTransactionSchema,
-  rakuTransactionSchema,
-} from "../../models/rakuTransactionModel.js";
+import { rakTransactionSchema } from "../../models/rakuTransactionModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,6 +96,8 @@ const processTransaction = async ({
             }
           }
         }
+      } else {
+        Logger.log(`Transaction ${transaction.reference_id} is not valid`);
       }
     }
   } catch (error) {
