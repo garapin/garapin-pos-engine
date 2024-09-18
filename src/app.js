@@ -1,9 +1,9 @@
-import express from 'express';
-import 'dotenv/config';
-import setupCronJobs from './scheduler/scheduler.js';
+import express from "express";
+import "dotenv/config";
+import setupCronJobs from "./scheduler/scheduler.js";
 
-import Logger from './utils/logger.js';
-import mongoose from './config/db.js';
+import Logger from "./utils/logger.js";
+import mongoose from "./config/db.js";
 
 const app = express();
 const port = process.env.PORT || 5000;

@@ -13,7 +13,7 @@ import { rakTypeSchema } from "../../models/rakuRakTypeModel.js";
 import { positionSchema } from "../../models/rakuPositionModel.js";
 import mongoose from "mongoose";
 import moment from "moment-timezone";
-import { rakuTransactionSchema } from "../../models/rakuTransactionModel.js";
+import { rakTransactionSchema } from "../../models/rakuTransactionModel.js";
 import { ConfigAppModel } from "../../models/configAppModel.js";
 const ObjectId = mongoose.Types.ObjectId;
 const timezones = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -78,7 +78,7 @@ class RakuEngine {
 
         const rakuTransactionModelStore = storeDatabase.model(
           "rakTransaction",
-          rakuTransactionSchema
+          rakTransactionSchema
         );
 
         const rakTransactions = await rakuTransactionModelStore.find();
