@@ -1,9 +1,5 @@
-import RakServices from "./engines/one-mart/rakServices.js";
-import TransactionEngine from "./engines/bagi-bagi-transaction/transactionEngine.js";
+import RakEngine from "./engines/one-mart/rakEngine.js";
+import mongoose from "./config/db.js";
 
-// const rakService = new RakServices();
-
-// rakService.procesUpdateServices();
-const transactionEngine = new TransactionEngine();
-
-transactionEngine.processTransactions();
+const rakEngine = new RakEngine();
+rakEngine.checkRakEngine();

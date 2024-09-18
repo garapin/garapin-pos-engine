@@ -8,7 +8,7 @@ import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
 import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.js";
 import { RouteRole, StatusStore } from "../../config/enums.js";
-import moment from 'moment-timezone';
+import moment from "moment-timezone";
 import { templateSchema } from "../../models/templateModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,7 +58,7 @@ const getTransactionStoreTypeByDatabase = async (
       account_holder: {
         id: process.env.XENDIT_ACCOUNT_GARAPIN,
       },
-    }
+    };
 
     const balance = await getBalance(store, baseUrl, apiKey);
     console.log(`Balance store Garapin POS Rp ${balance}`);
@@ -177,12 +177,14 @@ const processSplitTransactionCash = async (
           `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
         );
 
-        const currentTime = moment().tz('Asia/Jakarta'); // Mengatur zona waktu ke Asia/Jakarta
-        const localTime = currentTime.format('HH:mm:ss');
+        const currentTime = moment().tz("Asia/Jakarta"); // Mengatur zona waktu ke Asia/Jakarta
+        const localTime = currentTime.format("HH:mm:ss");
         console.log(`Current local time: ${localTime}`);
-  
-        const cutoffTime = moment().tz('Asia/Jakarta').set({ hour: 23, minute: 30, second: 0 }); // Set waktu cutoff menjadi 11.30 PM waktu lokal
-        const localCutoffTime = cutoffTime.format('HH:mm:ss');
+
+        const cutoffTime = moment()
+          .tz("Asia/Jakarta")
+          .set({ hour: 23, minute: 30, second: 0 }); // Set waktu cutoff menjadi 11.30 PM waktu lokal
+        const localCutoffTime = cutoffTime.format("HH:mm:ss");
         console.log(`Cutoff local time: ${localCutoffTime}`);
         if (
           currentTime.isAfter(cutoffTime) &&
@@ -402,7 +404,7 @@ const splitTransaction = async (
       Logger.log(
         `Transaction ${transaction.invoice + "&&" + route.reference_id} successfully split`
       );
-      
+
       Logger.log("Update Transaction main invoice");
       await updateTransaction(transaction, target_database);
     } else {
@@ -417,7 +419,9 @@ const splitTransaction = async (
 };
 
 const updateTransaction = async (transaction, target_database) => {
-  Logger.log(`Update transaction ${transaction.invoice} for ${target_database}`);
+  Logger.log(
+    `Update transaction ${transaction.invoice} for ${target_database}`
+  );
   const db = await connectTargetDatabase(target_database);
   const TransactionModel = db.model("Transaction", transactionSchema);
   try {
