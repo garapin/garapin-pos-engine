@@ -21,30 +21,33 @@ class TransactionEngine {
     });
   }
 
-  async getXenditTransaction() {
+  async getXenditTransaction(limit = 10, afterId = null) {
     const url = `${this.baseUrl}/transactions`;
     try {
-      const response = await this.fetchTransactions(url);
-      // console.log(response.data.data);
-
+      const response = await this.fetchTransactions(url, limit, afterId);
       return response.data.data;
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
     }
   }
 
-  async fetchTransactions(url) {
+  async fetchTransactions(url, limit = 10, afterId = null) {
     try {
       Logger.log("Mengambil transaksi dari Xendit fetchTransactions");
+      const params = {
+        limit: limit,
+        channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
+      };
+      if (afterId) {
+        Logger.log("afterId", afterId);
+        params.after_id = afterId;
+      }
       return axios.get(url, {
         headers: {
           Authorization: `Basic ${Buffer.from(this.apiKey + ":").toString("base64")}`,
           "for-user-id": this.accountId,
         },
-        params: {
-          limit: 50,
-          channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
-        },
+        params: params,
       });
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
@@ -54,63 +57,66 @@ class TransactionEngine {
   async processTransactions() {
     Logger.log("Checking transactions...");
 
-    // Mengukur waktu menggunakan worker threads
     console.time("Worker Pool");
     try {
-      const [transactions, allStore] = await Promise.all([
-        this.getXenditTransaction(),
-        this.getAllStore(),
-      ]);
+      const allStore = await this.getAllStore();
+      let batchCount = 0;
+      let hasMoreTransactions = true;
+      let lastTransactionId = null;
 
-      Logger.log("Total transaksi:", transactions.data);
-
-      const filteredTransactions = transactions.filter((transaction) => {
-        if (this.processedTransactions.has(transaction.id)) {
-          return false; // Jika transaksi sudah diproses, abaikan
+      while (batchCount < 5 && hasMoreTransactions) {
+        const transactions = await this.getXenditTransaction(10, lastTransactionId);
+        if (transactions.length === 0) {
+          hasMoreTransactions = false;
+          break;
         }
-        this.processedTransactions.add(transaction.id); // Tandai transaksi sebagai sudah diproses
-        return true;
-      });
 
-      // Proses transaksi secara paralel menggunakan worker threads
-      // console.log("====================================");
-      // console.log(this.accountId);
-      // console.log(this.baseUrl);
-      // console.log(this.apiKey);
-      // console.log("====================================");
-      const promises = allStore.map(async (store) => {
-        const storeData = JSON.parse(JSON.stringify(store));
-        const transactionsData = JSON.parse(JSON.stringify(transactions));
+        Logger.log("Total transaksi:", transactions.length);
 
-        try {
-          console.log(transactionsData);
-
-          const result = await this.pool.exec("processTransaction", [
-            {
-              transactions: transactionsData,
-              store: storeData,
-              accountId: this.accountId,
-              baseUrl: this.baseUrl,
-              apiKey: this.apiKey,
-            },
-          ]);
-          Logger.log("Transaction processed:", result);
-        } catch (error) {
-          if (error instanceof AggregateError) {
-            error.errors.forEach((err) =>
-              Logger.errorLog(
-                `Error processing transaction pool: ${err.message || err}`
-              )
-            );
-          } else {
-            Logger.errorLog(
-              `Error processing transactionss: ${error.name}: ${error.message || error}`
-            );
+        const filteredTransactions = transactions.filter((transaction) => {
+          if (this.processedTransactions.has(transaction.id)) {
+            return false;
           }
-        }
-      });
+          this.processedTransactions.add(transaction.id);
+          return true;
+        });
 
-      await Promise.all(promises);
+        const promises = allStore.map(async (store) => {
+          const storeData = JSON.parse(JSON.stringify(store));
+          const transactionsData = JSON.parse(JSON.stringify(filteredTransactions));
+
+          try {
+            console.log(transactionsData);
+
+            const result = await this.pool.exec("processTransaction", [
+              {
+                transactions: transactionsData,
+                store: storeData,
+                accountId: this.accountId,
+                baseUrl: this.baseUrl,
+                apiKey: this.apiKey,
+              },
+            ]);
+            Logger.log("Transaction processed:", result);
+          } catch (error) {
+            if (error instanceof AggregateError) {
+              error.errors.forEach((err) =>
+                Logger.errorLog(
+                  `Error processing transaction pool: ${err.message || err}`
+                )
+              );
+            } else {
+              Logger.errorLog(
+                `Error processing transactions: ${error.name}: ${error.message || error}`
+              );
+            }
+          }
+        });
+
+        await Promise.all(promises);
+        batchCount++;
+        lastTransactionId = transactions[transactions.length - 1].id;
+      }
     } catch (error) {
       Logger.errorLog(`Error processing transactions: ${error.message}`);
       if (error.name === "MongoNetworkError") {
