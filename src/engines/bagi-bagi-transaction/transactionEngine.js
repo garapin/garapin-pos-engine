@@ -21,33 +21,28 @@ class TransactionEngine {
     });
   }
 
-  async getXenditTransaction(limit = 10, afterId = null) {
+  async getXenditTransaction(limit = 10) {
     const url = `${this.baseUrl}/transactions`;
     try {
-      const response = await this.fetchTransactions(url, limit, afterId);
+      const response = await this.fetchTransactions(url, limit);
       return response.data.data;
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
     }
   }
 
-  async fetchTransactions(url, limit = 10, afterId = null) {
+  async fetchTransactions(url, limit = 10) {
     try {
       Logger.log("Mengambil transaksi dari Xendit fetchTransactions");
-      const params = {
-        limit: limit,
-        channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
-      };
-      if (afterId) {
-        Logger.log("afterId", afterId);
-        params.after_id = afterId;
-      }
       return axios.get(url, {
         headers: {
           Authorization: `Basic ${Buffer.from(this.apiKey + ":").toString("base64")}`,
           "for-user-id": this.accountId,
         },
-        params: params,
+        params: {
+          limit: limit,
+          channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
+        },
       });
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
@@ -62,10 +57,9 @@ class TransactionEngine {
       const allStore = await this.getAllStore();
       let batchCount = 0;
       let hasMoreTransactions = true;
-      let lastTransactionId = null;
 
       while (batchCount < 5 && hasMoreTransactions) {
-        const transactions = await this.getXenditTransaction(10, lastTransactionId);
+        const transactions = await this.getXenditTransaction();
         if (transactions.length === 0) {
           hasMoreTransactions = false;
           break;
@@ -115,7 +109,6 @@ class TransactionEngine {
 
         await Promise.all(promises);
         batchCount++;
-        lastTransactionId = transactions[transactions.length - 1].id;
       }
     } catch (error) {
       Logger.errorLog(`Error processing transactions: ${error.message}`);
