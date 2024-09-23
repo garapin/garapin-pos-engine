@@ -6,7 +6,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Cashflow, SettlementStatus } from "../../config/enums.js";
 import { transactionSchema } from "../../models/transactionModel.js";
-import { rakTransactionSchema } from "../../models/rakuTransactionModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,15 +46,6 @@ const processTransaction = async ({
           { settlement_status: "SETTLED" }
         );
 
-        const RakuTransactionModel = storeDatabase.model(
-          "rakTransaction",
-          rakTransactionSchema
-        );
-
-        await RakuTransactionModel.updateOne(
-          { invoice: transaction.reference_id },
-          { settlement_status: "SETTLED" }
-        );
         const TemplateModel = storeDatabase.model(
           "Split_Payment_Rule_Id",
           splitPaymentRuleIdScheme
@@ -96,8 +86,6 @@ const processTransaction = async ({
             }
           }
         }
-      } else {
-        Logger.log(`Transaction ${transaction.reference_id} is not valid`);
       }
     }
   } catch (error) {

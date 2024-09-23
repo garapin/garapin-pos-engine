@@ -18,7 +18,7 @@ class TransactionEngine {
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
       minWorkers: 'max',
-      maxWorkers: 10, // Set maximum workers to 10
+      maxWorkers: 20, // Set maximum workers to 20
     });
   }
 
@@ -28,7 +28,16 @@ class TransactionEngine {
       const response = await this.fetchTransactions(url, limit, afterId);
       return response.data.data;
     } catch (error) {
-      Logger.errorLog("Gagal mengambil transaksi", error);
+      if (error.response && error.response.status === 429) {
+        console.log(limit);
+        console.log(afterId);
+        Logger.errorLog("Rate limit exceeded, waiting before retrying...");
+        await this.sleep(5000); // Wait for 5 seconds before retrying
+        return this.getXenditTransaction(limit, afterId);
+      } else {
+        Logger.errorLog("Gagal mengambil transaksi", error);
+        throw error;
+      }
     }
   }
 
@@ -51,6 +60,7 @@ class TransactionEngine {
       });
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
+      throw error;
     }
   }
 
@@ -65,7 +75,7 @@ class TransactionEngine {
       let lastTransactionId = null;
       const allProcessedTransactionIds = [];
 
-      while (batchCount < 5 && hasMoreTransactions) {
+      while (batchCount < 10 && hasMoreTransactions) {
         const transactions = await this.getXenditTransaction(10, lastTransactionId);
         if (transactions.length === 0) {
           hasMoreTransactions = false;
@@ -164,6 +174,10 @@ class TransactionEngine {
 
   async closePool() {
     await this.pool.terminate();
+  }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
