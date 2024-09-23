@@ -15,10 +15,10 @@ function setupCronJobs() {
     transactionEngine.processTransactions();
   });
 
-  cron.schedule(schedule, () => {
-    Logger.log("Menjalankan cron check payment CASH");
-    cashPaymentEngine.checkPaymentCash();
-  });
+  // cron.schedule(schedule, () => {
+  //   Logger.log("Menjalankan cron check payment CASH");
+  //   cashPaymentEngine.checkPaymentCash();
+  // });
 
   /*cron.schedule(schedule, () => {
     Logger.log("Menjalankan checkRakEngine");

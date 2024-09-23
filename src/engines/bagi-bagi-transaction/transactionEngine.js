@@ -17,32 +17,37 @@ class TransactionEngine {
     this.baseUrl = "https://api.xendit.co";
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
-      minWorkers: "max",
+      minWorkers: 'max',
+      maxWorkers: 10, // Set maximum workers to 10
     });
   }
 
-  async getXenditTransaction(limit = 10) {
+  async getXenditTransaction(limit = 10, afterId = null) {
     const url = `${this.baseUrl}/transactions`;
     try {
-      const response = await this.fetchTransactions(url, limit);
+      const response = await this.fetchTransactions(url, limit, afterId);
       return response.data.data;
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
     }
   }
 
-  async fetchTransactions(url, limit = 10) {
+  async fetchTransactions(url, limit = 10, afterId = null) {
     try {
       Logger.log("Mengambil transaksi dari Xendit fetchTransactions");
+      const params = {
+        limit: limit,
+        channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
+      };
+      if (afterId) {
+        params.after_id = afterId;
+      }
       return axios.get(url, {
         headers: {
           Authorization: `Basic ${Buffer.from(this.apiKey + ":").toString("base64")}`,
           "for-user-id": this.accountId,
         },
-        params: {
-          limit: limit,
-          channel_categories: [ChannelCategory.VA, ChannelCategory.QR],
-        },
+        params: params,
       });
     } catch (error) {
       Logger.errorLog("Gagal mengambil transaksi", error);
@@ -57,9 +62,11 @@ class TransactionEngine {
       const allStore = await this.getAllStore();
       let batchCount = 0;
       let hasMoreTransactions = true;
+      let lastTransactionId = null;
+      const allProcessedTransactionIds = [];
 
       while (batchCount < 5 && hasMoreTransactions) {
-        const transactions = await this.getXenditTransaction();
+        const transactions = await this.getXenditTransaction(10, lastTransactionId);
         if (transactions.length === 0) {
           hasMoreTransactions = false;
           break;
@@ -68,48 +75,58 @@ class TransactionEngine {
         Logger.log("Total transaksi:", transactions.length);
 
         const filteredTransactions = transactions.filter((transaction) => {
-          if (this.processedTransactions.has(transaction.id)) {
-            return false;
-          }
+          // if (this.processedTransactions.has(transaction.id)) {
+          //   return false;
+          // }
           this.processedTransactions.add(transaction.id);
+          allProcessedTransactionIds.push(transaction.id);
           return true;
         });
 
-        const promises = allStore.map(async (store) => {
-          const storeData = JSON.parse(JSON.stringify(store));
-          const transactionsData = JSON.parse(JSON.stringify(filteredTransactions));
+        const transactionChunks = this.chunkArray(filteredTransactions, 5);
 
-          try {
-            console.log(transactionsData);
+        const promises = transactionChunks.map(async (chunk) => {
+          const chunkPromises = allStore.map(async (store) => {
+            const storeData = JSON.parse(JSON.stringify(store));
+            const transactionsData = JSON.parse(JSON.stringify(chunk));
 
-            const result = await this.pool.exec("processTransaction", [
-              {
-                transactions: transactionsData,
-                store: storeData,
-                accountId: this.accountId,
-                baseUrl: this.baseUrl,
-                apiKey: this.apiKey,
-              },
-            ]);
-            Logger.log("Transaction processed:", result);
-          } catch (error) {
-            if (error instanceof AggregateError) {
-              error.errors.forEach((err) =>
+            try {
+              console.log(transactionsData);
+
+              const result = await this.pool.exec("processTransaction", [
+                {
+                  transactions: transactionsData,
+                  store: storeData,
+                  accountId: this.accountId,
+                  baseUrl: this.baseUrl,
+                  apiKey: this.apiKey,
+                },
+              ]);
+              Logger.log("Transaction processed:", result);
+            } catch (error) {
+              if (error instanceof AggregateError) {
+                error.errors.forEach((err) =>
+                  Logger.errorLog(
+                    `Error processing transaction pool: ${err.message || err}`
+                  )
+                );
+              } else {
                 Logger.errorLog(
-                  `Error processing transaction pool: ${err.message || err}`
-                )
-              );
-            } else {
-              Logger.errorLog(
-                `Error processing transactions: ${error.name}: ${error.message || error}`
-              );
+                  `Error processing transactions: ${error.name}: ${error.message || error}`
+                );
+              }
             }
-          }
+          });
+
+          await Promise.all(chunkPromises);
         });
 
         await Promise.all(promises);
         batchCount++;
+        lastTransactionId = transactions[transactions.length - 1].id;
       }
+
+      Logger.log("All processed transaction IDs:", allProcessedTransactionIds);
     } catch (error) {
       Logger.errorLog(`Error processing transactions: ${error.message}`);
       if (error.name === "MongoNetworkError") {
@@ -126,6 +143,14 @@ class TransactionEngine {
       }
     }
     console.timeEnd("Worker Pool");
+  }
+
+  chunkArray(array, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
   }
 
   async getAllStore() {
