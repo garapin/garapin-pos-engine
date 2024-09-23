@@ -446,6 +446,9 @@ const getBalance = async (store, baseUrl, apiKey) => {
   Logger.log(`Getting balance for store ${store.store_name}`);
   const url = `${baseUrl}/balance`;
   try {
+    Logger.errorLog("url balance" + url);
+    Logger.errorLog("apiKey balance" + apiKey);
+    Logger.errorLog("for-user-id balance" + store.account_holder.id);
     const response = await axios.get(url, {
       headers: {
         Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
