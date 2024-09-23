@@ -147,7 +147,7 @@ const splitTransaction = async (
   }
 
   const transferBody = {
-    amount: route.taxes ? route.flat_amount - totalFee : route.flat_amount,
+    amount: route.flat_amount ?? 0 - route.fee_bank,
     source_user_id: route.source_account_id,
     destination_user_id: route.destination_account_id,
     reference: transaction.reference_id + "&&" + route.reference_id,
