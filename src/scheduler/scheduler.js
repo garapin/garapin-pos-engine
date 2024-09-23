@@ -20,11 +20,10 @@ function setupCronJobs() {
     cashPaymentEngine.checkPaymentCash();
   });
 
-  cron.schedule(schedule, () => {
+  /*cron.schedule(schedule, () => {
     Logger.log("Menjalankan checkRakEngine");
-
     rakEngine.checkRakEngine();
-  });
+  })*/
 }
 
 export default setupCronJobs;
