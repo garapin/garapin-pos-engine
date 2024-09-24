@@ -22,7 +22,6 @@ function setupCronJobs() {
 
   cron.schedule(schedule, () => {
     Logger.log("Menjalankan checkRakEngine");
-
     rakEngine.checkRakEngine();
   });
 }
