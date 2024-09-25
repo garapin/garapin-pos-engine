@@ -22,23 +22,27 @@ class RakEngine {
 
   async checkRakEngine() {
     Logger.log("Checking checkRakEngine...");
+    console.time("Worker Pool checkRakEngine");
 
     const allStore = await this.getAllStore();
 
     try {
       const promises = allStore.map((store) => {
         const storeData = JSON.parse(JSON.stringify(store));
-        console.log("====================================");
-        console.log(storeData);
-        console.log("====================================");
+        // console.log("====================================");
+        // console.log(storeData);
+        // console.log("====================================");
 
-        return this.pool.exec("updateRak", [{ store: storeData }]);
+        return this.pool.exec("updateRak", [{ store: storeData }], {
+          minWorkers: "max",
+          maxWorkers: "max",
+        });
       });
       await Promise.all(promises);
     } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
+      // console.log("====================================");
+      // console.log(error);
+      // console.log("====================================");
       Logger.errorLog("Error during worker pool ", error);
     }
     console.timeEnd("Worker Pool checkRakEngine");

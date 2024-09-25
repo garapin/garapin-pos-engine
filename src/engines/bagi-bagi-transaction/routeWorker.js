@@ -141,13 +141,13 @@ const splitTransaction = async (
   var totalFee = 0;
 
   if (transaction.fee.status === "PENDING") {
-    totalFee = await calculateFee(transaction);
+    totalFee = route.totalFee;
   } else {
     totalFee = transaction.fee.xendit_fee + transaction.fee.value_added_tax;
   }
 
   const transferBody = {
-    amount: route.flat_amount ?? 0 - route.fee_bank,
+    amount: route.flat_amount - totalFee,
     source_user_id: route.source_account_id,
     destination_user_id: route.destination_account_id,
     reference: transaction.reference_id + "&&" + route.reference_id,
