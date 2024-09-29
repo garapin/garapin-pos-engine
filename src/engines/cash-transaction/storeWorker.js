@@ -56,7 +56,7 @@ const getTransactionStoreTypeByDatabase = async (
     var store = {
       store_name: "Garapin POS",
       account_holder: {
-        id: process.env.XENDIT_ACCOUNT_GARAPIN,
+        id: process.env.XENDIT_ACCOUNT_QUICK_RELEASE,
       },
     };
 
