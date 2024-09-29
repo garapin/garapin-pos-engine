@@ -138,16 +138,16 @@ const splitTransaction = async (
   const db = await connectTargetDatabase("garapin_pos");
   const AuditTrail = db.model("audit_trail", auditTrailSchema);
 
-  var totalFee = 0;
+  // var totalFee = 0;
 
-  if (transaction.fee.status === "PENDING") {
-    totalFee = route.totalFee;
-  } else {
-    totalFee = transaction.fee.xendit_fee + transaction.fee.value_added_tax;
-  }
+  // if (transaction.fee.status === "PENDING") {
+  //   totalFee = route.totalFee;
+  // } else {
+  //   totalFee = transaction.fee.xendit_fee + transaction.fee.value_added_tax;
+  // }
 
   const transferBody = {
-    amount: route.flat_amount - totalFee,
+    amount: route.flat_amount - route.totalFee, // tidak perlu dikurang fee karna flat_amount sudah dikurangi fee
     source_user_id: route.source_account_id,
     destination_user_id: route.destination_account_id,
     reference: transaction.reference_id + "&&" + route.reference_id,
