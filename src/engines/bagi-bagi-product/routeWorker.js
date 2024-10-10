@@ -112,7 +112,7 @@ const splitTransaction = async (
   // }
 
   const transferBody = {
-    amount: route.flat_amount - route.totalFee, // tidak perlu dikurang fee karna flat_amount sudah dikurangi fee
+    amount: route.flat_amount - route.fee - route.totalFee, // tidak perlu dikurang fee karna flat_amount sudah dikurangi fee
     source_user_id: route.source_account_id,
     destination_user_id: route.destination_account_id,
     reference: transaction.reference_id + "&&" + route.reference_id,
