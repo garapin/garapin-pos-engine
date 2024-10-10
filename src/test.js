@@ -6,14 +6,14 @@ import { connectTargetDatabase } from "./config/targetDatabase.js";
 import { positionSchema } from "./models/positionModel.js";
 import { productSchema } from "./models/productModel.js";
 import ProductEngine from "./engines/bagi-bagi-product/productEngine.js";
-const rakEngine = new RakEngine();
-rakEngine.checkRakEngine();
+// const rakEngine = new RakEngine();
+// rakEngine.checkRakEngine();
 
-const transactionEngine = new TransactionEngine();
-transactionEngine.processTransactions();
+// const transactionEngine = new TransactionEngine();
+// transactionEngine.processTransactions();
 
-const cashPaymentEngine = new CashPaymentEngine();
-cashPaymentEngine.checkPaymentCash();
+// const cashPaymentEngine = new CashPaymentEngine();
+// cashPaymentEngine.checkPaymentCash();
 
-const productengine = new ProductEngine();
-productengine.processTransactions();
+// const productengine = new ProductEngine();
+// productengine.processTransactions();
