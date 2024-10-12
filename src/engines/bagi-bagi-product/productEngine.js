@@ -17,8 +17,8 @@ class ProductEngine {
     this.baseUrl = "https://api.xendit.co";
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
-      minWorkers: "max",
-      maxWorkers: 20, // Set maximum workers to 20
+      minWorkers: 5,
+      maxWorkers: 10, // Setmaximum workers to 20
     });
   }
 

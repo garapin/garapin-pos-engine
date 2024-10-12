@@ -17,8 +17,8 @@ class TransactionEngine {
     this.baseUrl = "https://api.xendit.co";
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
-      minWorkers: 'max',
-      maxWorkers: 20, // Set maximum workers to 20
+      minWorkers: 5,
+      maxWorkers: 10, // Set maximum workers to 20
     });
   }
 
@@ -76,7 +76,10 @@ class TransactionEngine {
       const allProcessedTransactionIds = [];
 
       while (batchCount < 10 && hasMoreTransactions) {
-        const transactions = await this.getXenditTransaction(10, lastTransactionId);
+        const transactions = await this.getXenditTransaction(
+          10,
+          lastTransactionId
+        );
         if (transactions.length === 0) {
           hasMoreTransactions = false;
           break;
@@ -177,7 +180,7 @@ class TransactionEngine {
   }
 
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

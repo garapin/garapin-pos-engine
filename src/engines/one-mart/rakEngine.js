@@ -15,7 +15,8 @@ class RakEngine {
     console.log(path.resolve(__dirname, "rak.js"));
     console.log("====================================");
     this.pool = workerpool.pool(path.resolve(__dirname, "rak.js"), {
-      minWorkers: "max",
+      minWorkers: 5,
+      maxWorkers: 10, // Set
     });
     // this.checkRakEngine();
   }

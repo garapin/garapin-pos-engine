@@ -13,7 +13,8 @@ class CashPaymentEngine {
     this.apiKey = process.env.XENDIT_API_KEY;
     this.baseUrl = "https://api.xendit.co";
     this.pool = workerpool.pool(path.resolve(__dirname, "storeWorker.js"), {
-      minWorkers: "max",
+      minWorkers: 5,
+      maxWorkers: 10, // Set
     });
   }
 
