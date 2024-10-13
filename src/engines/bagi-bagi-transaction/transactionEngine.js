@@ -18,7 +18,7 @@ class TransactionEngine {
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
       //minWorkers: 5,
-	  minWorkers: max,
+	  minWorkers: 'max',
       maxWorkers: 20, // Set maximum workers to 20
     });
   }
