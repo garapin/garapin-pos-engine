@@ -73,7 +73,7 @@ const checkListTransaction = async (
         const TransactionModel = db.model("Transaction", transactionSchema);
         const transactionList = await TransactionModel.find({
             settlement_status: "PENDING_WITHDRAWL",
-            status: "SUCCEEDED",
+            status: "PENDING",
         });
 
         if (transactionList.length > 0) {
