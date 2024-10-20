@@ -1,0 +1,34 @@
+DEBUG_MODE=true
+
+# port
+PORT=5000
+
+# host localhost/ip_address
+HOST=localhost
+
+CRON_SCHEDULE=*/1 * * * *
+
+# set database string connection
+MONGODB_URI=mongodb://127.0.0.1:27017
+
+# Xendit API Key
+XENDIT_API_KEY=xnd_development_l4bCyXMgN9J5BdQOcArQKi0ezIUtMLw9g8a7eksHPtsNyfgV9Y00qnBLYCbfZ
+
+# Xendit WebHook Token
+XENDIT_WEBHOOK_TOKEN=f28ee66eee8597d5333b8c73d01f78e2a679a917eb250d80cbdd0659d4d7f96c
+
+# Xendit WebHook
+XENDIT_WEBHOOK_URL=https://d18b-158-140-175-251.ngrok-free.app
+
+# Xendit Main Account
+XENDIT_ACCOUNT_GARAPIN=6602d442a5e108f758e0651d
+XENDIT_ACCOUNT_QUICK_RELEASE=6602d442a5e108f758e0651d
+
+# SMTP
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USER=cf1e0af7ff2e58
+SMTP_PASS=0bc15c1087ca64
+
+# Email
+RECEIVER_EMAIL='garapin1@gmail.com,garapin2@gmail.com,garapin3@gmail.com'
