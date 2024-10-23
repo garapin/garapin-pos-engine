@@ -10,16 +10,15 @@ import { DatabaseModel } from "../../models/databaseModel.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class TransactionEngine {
+class ProductEngine {
   constructor() {
     this.apiKey = process.env.XENDIT_API_KEY;
     this.accountId = process.env.XENDIT_ACCOUNT_GARAPIN;
     this.baseUrl = "https://api.xendit.co";
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
-      //minWorkers: 5,
-	  minWorkers: 'max',
-      maxWorkers: 10, // Set maximum workers to 20
+      minWorkers: 5,
+      maxWorkers: 10, // Setmaximum workers to 20
     });
   }
 
@@ -185,4 +184,4 @@ class TransactionEngine {
   }
 }
 
-export default TransactionEngine;
+export default ProductEngine;

@@ -120,6 +120,11 @@ const rakTransactionSchema = new mongoose.Schema(
       type: Date,
       default: "",
     },
+
+    settlement_status: {
+      type: String,
+      default: "NOT_SETTLED",
+    },
     webhook: {
       type: Object,
       default: null,
