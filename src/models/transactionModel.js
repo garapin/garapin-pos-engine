@@ -14,6 +14,10 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    parent_invoice: {
+      type: String,
+      required: false,
+    },
     settlement_status: {
       type: String,
       default: "",
@@ -53,8 +57,15 @@ const transactionSchema = new mongoose.Schema(
     vat: {
       type: Number,
       default: 0
-    }
-
+    },
+    quick_release_fee: {
+      type: Number,
+      default: 0
+    },
+    quick_release_vat: {
+      type: Number,
+      default: 0
+    },
   },
   { timestamps: true }
 );

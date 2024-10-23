@@ -28,63 +28,76 @@ const processTransaction = async ({
 }) => {
   let storeDatabase = null;
   try {
+    storeDatabase = await connectTargetDatabase(store.db_name);
+
+    const TransactionModel = storeDatabase.model(
+      "Transaction",
+      transactionSchema
+    );
+
     for (const transaction of transactions) {
       if (
         isValidReferenceId(transaction.reference_id) &&
         transaction.settlement_status === SettlementStatus.SETTLED &&
         transaction.cashflow === Cashflow.MONEY_IN
       ) {
-        storeDatabase = await connectTargetDatabase(store.db_name);
 
-        const TransactionModel = storeDatabase.model(
-          "Transaction",
-          transactionSchema
-        );
-
-        await TransactionModel.updateOne(
-          { invoice: transaction.reference_id },
-          { settlement_status: "SETTLED" }
-        );
-
-        const TemplateModel = storeDatabase.model(
-          "Split_Payment_Rule_Id",
-          splitPaymentRuleIdScheme
-        );
-
-        const template = await TemplateModel.findOne({
+        // Periksa status penyelesaian di database
+        const dbTransaction = await TransactionModel.findOne({
           invoice: transaction.reference_id,
+          settlement_status: "NOT_SETTLED"
         }).lean();
 
-        if (template) {
-          Logger.log(
-            `Processing invoice ${transaction.reference_id} with amount ${transaction.amount}`
+        if (dbTransaction) {
+          await TransactionModel.updateOne(
+            { invoice: transaction.reference_id },
+            { settlement_status: "SETTLED" }
           );
-
-          for (const route of template.routes) {
-            if (
-              route.destination_account_id !== route.source_account_id ||
-              route.destination_account_id !== null
-            ) {
-              // Klon data secara manual sebelum mengirimnya ke worker thread
-              const routeData = JSON.parse(JSON.stringify(route));
-              const transactionData = JSON.parse(JSON.stringify(transaction));
-              try {
-                await pool.exec("processRoute", [
-                  {
-                    route: routeData,
-                    transaction: transactionData,
-                    accountId,
-                    baseUrl,
-                    apiKey,
-                  },
-                ]);
-              } catch (error) {
-                Logger.errorLog(
-                  `Error processing route for transaction ${transaction.reference_id}: ${error.message || error}`
-                );
+  
+          const TemplateModel = storeDatabase.model(
+            "Split_Payment_Rule_Id",
+            splitPaymentRuleIdScheme
+          );
+  
+          const template = await TemplateModel.findOne({
+            invoice: transaction.reference_id,
+          }).lean();
+  
+          if (template) {
+            Logger.log(
+              `Processing invoice ${transaction.reference_id} with amount ${transaction.amount}`
+            );
+  
+            for (const route of template.routes) {
+              if (
+                route.destination_account_id !== route.source_account_id ||
+                route.destination_account_id !== null
+              ) {
+                // Klon data secara manual sebelum mengirimnya ke worker thread
+                const routeData = JSON.parse(JSON.stringify(route));
+                const transactionData = JSON.parse(JSON.stringify(transaction));
+                try {
+                  await pool.exec("processRoute", [
+                    {
+                      route: routeData,
+                      transaction: transactionData,
+                      accountId,
+                      baseUrl,
+                      apiKey,
+                    },
+                  ]);
+                } catch (error) {
+                  Logger.errorLog(
+                    `Error processing route for transaction ${transaction.reference_id}: ${error.message || error}`
+                  );
+                }
               }
             }
           }
+        } else {
+          Logger.log(
+            `Invoice ${transaction.reference_id} sudah diselesaikan atau tidak ditemukan. Melewati.`
+          );
         }
       }
     }

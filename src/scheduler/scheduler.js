@@ -5,9 +5,11 @@ import CashPaymentEngine from "../engines/cash-transaction/cashPaymentEngine.js"
 import TransactionEngine from "../engines/bagi-bagi-transaction/transactionEngine.js";
 import RakEngine from "../engines/one-mart/rakEngine.js";
 import ProductEngine from "../engines/bagi-bagi-product/productEngine.js";
+import WithdrawlPaymentEngine from "../engines/withdrawl-transaction/withdrawlPaymentEngine.js";
 
 const transactionEngine = new TransactionEngine();
 const cashPaymentEngine = new CashPaymentEngine();
+const withdrawlPaymentEngine = new WithdrawlPaymentEngine();
 const rakEngine = new RakEngine();
 const productEngine = new ProductEngine();
 function setupCronJobs() {
@@ -26,10 +28,9 @@ function setupCronJobs() {
     Logger.log("Menjalankan checkRakEngine");
     rakEngine.checkRakEngine();
   });
-
   cron.schedule(schedule, () => {
-    Logger.log("Menjalankan cron job VA and QRIS checked Transaction");
-    productEngine.processTransactions();
+    Logger.log("Menjalankan cron check payment WITHDRAWL");
+    withdrawlPaymentEngine.checkPaymentCash();
   });
 }
 
