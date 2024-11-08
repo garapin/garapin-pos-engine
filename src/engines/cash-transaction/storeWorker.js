@@ -442,22 +442,39 @@ const updateTransaction = async (transaction, target_database) => {
   }
 };
 
-const getBalance = async (store, baseUrl, apiKey) => {
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const getBalance = async (store, baseUrl, apiKey, retryCount = 0) => {
   Logger.log(`Getting balance for store ${store.store_name}`);
   const url = `${baseUrl}/balance`;
+  const maxRetries = 3;
+  const baseDelay = 1000;
+
   try {
     Logger.errorLog("url balance" + url);
     Logger.errorLog("apiKey balance" + apiKey);
     Logger.errorLog("for-user-id balance" + store.account_holder.id);
+    
     const response = await axios.get(url, {
       headers: {
         Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
         "for-user-id": store.account_holder.id,
       },
     });
-    return response.data.balance; // Hanya kirim data yang diperlukan
+    return response.data.balance;
   } catch (error) {
+    if (error.response?.status === 429 && retryCount < maxRetries) {
+      const delay = baseDelay * Math.pow(2, retryCount);
+      
+      Logger.log(`Rate limited. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${maxRetries})`);
+      
+      await sleep(delay);
+      
+      return getBalance(store, baseUrl, apiKey, retryCount + 1);
+    }
+
     Logger.errorLog("Error fetching balance", error);
+    // Untuk cash transaction, lebih baik throw error karena ini critical operation
     throw error;
   }
 };

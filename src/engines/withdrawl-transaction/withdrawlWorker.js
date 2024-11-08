@@ -396,8 +396,14 @@ const splitTransaction = async (
     balance,
     myStore
 ) => {
+
+    // Hitung amount berdasarkan target
+    let amount = route.flat_amount - route.totalFee;
+    if (route.target === "garapin") {
+        amount = route.flat_amount - route.totalFee + transaction.fee_bank + transaction.vat;
+    }
     const transferBody = {
-        amount: route.flat_amount,
+        amount: amount,
         source_user_id: source_user_id,
         destination_user_id: route.destination_account_id,
         reference: transaction.invoice + "&&" + route.reference_id,
@@ -522,12 +528,12 @@ const getBalance = async (store, baseUrl, apiKey, retryCount = 0) => {
         if (error.response?.status === 429 && retryCount < maxRetries) {
             // Hitung delay dengan exponential backoff
             const delay = baseDelay * Math.pow(2, retryCount);
-            
+
             Logger.log(`Rate limited. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${maxRetries})`);
-            
+
             // Tunggu sesuai delay
             await sleep(delay);
-            
+
             // Coba lagi dengan increment retryCount
             return getBalance(store, baseUrl, apiKey, retryCount + 1);
         }
