@@ -14,20 +14,20 @@ const rakEngine = new RakEngine();
 const productEngine = new ProductEngine();
 function setupCronJobs() {
   const schedule = process.env.CRON_SCHEDULE || "0 * * * *";
-  cron.schedule(schedule, () => {
-    Logger.log("Menjalankan cron job VA and QRIS checked Transaction");
-    transactionEngine.processTransactions();
-  });
+  // cron.schedule(schedule, () => {
+  //   Logger.log("Menjalankan cron job VA and QRIS checked Transaction");
+  //   transactionEngine.processTransactions();
+  // });
 
-  cron.schedule(schedule, () => {
-    Logger.log("Menjalankan cron check payment CASH");
-    cashPaymentEngine.checkPaymentCash();
-  });
+  // cron.schedule(schedule, () => {
+  //   Logger.log("Menjalankan cron check payment CASH");
+  //   cashPaymentEngine.checkPaymentCash();
+  // });
 
-  cron.schedule(schedule, () => {
-    Logger.log("Menjalankan checkRakEngine");
-    rakEngine.checkRakEngine();
-  });
+  // cron.schedule(schedule, () => {
+  //   Logger.log("Menjalankan checkRakEngine");
+  //   rakEngine.checkRakEngine();
+  // });
   cron.schedule(schedule, () => {
     Logger.log("Menjalankan cron check payment WITHDRAWL");
     withdrawlPaymentEngine.checkPaymentCash();

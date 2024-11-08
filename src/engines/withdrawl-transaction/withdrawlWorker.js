@@ -502,9 +502,14 @@ const updateTransaction = async (transaction, target_database, store) => {
     }
 };
 
-const getBalance = async (store, baseUrl, apiKey) => {
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const getBalance = async (store, baseUrl, apiKey, retryCount = 0) => {
     Logger.log(`Getting balance for store ${store.store_name}`);
     const url = `${baseUrl}/balance`;
+    const maxRetries = 3; // Maksimum percobaan
+    const baseDelay = 1000; // Delay dasar dalam milidetik (1 detik)
+
     try {
         const response = await axios.get(url, {
             headers: {
@@ -512,12 +517,27 @@ const getBalance = async (store, baseUrl, apiKey) => {
                 "for-user-id": store.account_holder.id,
             },
         });
-        return response.data.balance; // Hanya kirim data yang diperlukan
+        return response.data.balance;
     } catch (error) {
+        if (error.response?.status === 429 && retryCount < maxRetries) {
+            // Hitung delay dengan exponential backoff
+            const delay = baseDelay * Math.pow(2, retryCount);
+            
+            Logger.log(`Rate limited. Retrying in ${delay}ms... (Attempt ${retryCount + 1}/${maxRetries})`);
+            
+            // Tunggu sesuai delay
+            await sleep(delay);
+            
+            // Coba lagi dengan increment retryCount
+            return getBalance(store, baseUrl, apiKey, retryCount + 1);
+        }
+
         Logger.errorLog("Error fetching balance", error);
-        throw error;
+        // Jika sudah melebihi maksimum retry atau error lain, return default value
+        return 0; // atau nilai default lain yang sesuai
     }
 };
+
 
 const fetchTransactionDestination = async (
     route,
