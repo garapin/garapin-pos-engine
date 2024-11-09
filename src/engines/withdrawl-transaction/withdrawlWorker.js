@@ -400,7 +400,7 @@ const splitTransaction = async (
     // Hitung amount berdasarkan target
     let amount = route.flat_amount - route.totalFee;
     if (route.target === "garapin") {
-        amount = route.flat_amount - route.totalFee + transaction.fee_bank + transaction.vat;
+        amount = route.flat_amount + transaction.fee_bank + transaction.vat;
     }
     const transferBody = {
         amount: amount,
