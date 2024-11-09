@@ -133,6 +133,14 @@ const processSplitTransactionCash = async (
             // Calculate total without route route.destination_account_id !== store.account_holder.id
             const totalTransaction = transaction.total_with_fee;
 
+            // Hitung total fee untuk non-garapin terlebih dahulu
+            const totalNonGarapinFee = template.routes.reduce((total, route) => {
+                if (route.target !== "garapin") {
+                    return total + route.totalFee;
+                }
+                return total;
+            }, 0);
+
             Logger.log(`Total transaction: ${totalTransaction}`);
             Logger.log(`Balance: ${balance}`);
 
@@ -147,6 +155,7 @@ const processSplitTransactionCash = async (
                         apiKey,
                         target_database,
                         myStore,
+                        totalNonGarapinFee,
                     );
                 });
             } else {
@@ -202,7 +211,8 @@ const processRouteInvoice = async (
     baseUrl,
     apiKey,
     target_database,
-    myStore
+    myStore,
+    totalNonGarapinFee
 ) => {
     Logger.log(route.destination_account_id);
     try {
@@ -219,7 +229,8 @@ const processRouteInvoice = async (
             target_database,
             store,
             balance,
-            myStore
+            myStore,
+            totalNonGarapinFee
         );
         return { success: true };
     } catch (error) {
@@ -238,7 +249,8 @@ const checkAndSplitTransaction = async (
     target_database,
     store,
     balance,
-    myStore
+    myStore,
+    totalNonGarapinFee
 ) => {
 
     Logger.log("MASSUK CHECK AND SPLIT TRANSACTION");
@@ -271,7 +283,8 @@ const checkAndSplitTransaction = async (
                     true,
                     store,
                     balance,
-                    myStore
+                    myStore,
+                    totalNonGarapinFee
                 );
             } else {
                 Logger.log(`Transaction ${transaction.invoice} has already been split`);
@@ -291,7 +304,8 @@ const checkAndSplitTransaction = async (
                 target_database,
                 store,
                 balance,
-                myStore
+                myStore,
+                totalNonGarapinFee
             );
         }
         return { success: true };
@@ -308,7 +322,8 @@ const checkAndSplitChild = async (
     target_database,
     store,
     balance,
-    myStore
+    myStore,
+    totalNonGarapinFee
 ) => {
     let db = null;
     try {
@@ -352,7 +367,8 @@ const checkAndSplitChild = async (
                                     false,
                                     store,
                                     balance,
-                                    myStore
+                                    myStore,
+                                    0,
                                 );
 
                                 if (route.role === "SUPP") {
@@ -364,7 +380,8 @@ const checkAndSplitChild = async (
                                         target_database,
                                         store,
                                         balance,
-                                        myStore
+                                        myStore,
+                                        0,
                                     );
                                 }
                             }
@@ -394,13 +411,14 @@ const splitTransaction = async (
     mainTrx,
     store,
     balance,
-    myStore
+    myStore,
+    totalNonGarapinFee
 ) => {
 
     // Hitung amount berdasarkan target
     let amount = route.flat_amount - route.totalFee;
     if (route.target === "garapin") {
-        amount = route.flat_amount + transaction.fee_bank + transaction.vat;
+        amount = route.flat_amount + totalNonGarapinFee;
     }
     const transferBody = {
         amount: amount,
