@@ -45,13 +45,13 @@ const getTransactionStoreTypeByDatabase = async (
                 },
             };
 
-            const balance = await getBalance(garapinPosStore, baseUrl, apiKey);
+            // const balance = await getBalance(garapinPosStore, baseUrl, apiKey);
 
             Logger.log(`Balance store XENDIT QUICK RELEASE Rp ${balance}`);
             await checkListTransaction(
                 target_database,
                 garapinPosStore,
-                balance,
+                0,
                 baseUrl,
                 apiKey
             );
@@ -78,9 +78,9 @@ const checkListTransaction = async (
 
         if (transactionList.length > 0) {
             transactionList.map(async (transaction) => {
-                Logger.log(
-                    `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
-                );
+                // Logger.log(
+                //     `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
+                // );
 
                 await processSplitTransactionCash(
                     transaction,
@@ -142,58 +142,72 @@ const processSplitTransactionCash = async (
             }, 0);
 
             Logger.log(`Total transaction: ${totalTransaction}`);
-            Logger.log(`Balance: ${balance}`);
+            // Logger.log(`Balance: ${balance}`);
 
-            if (balance >= totalTransaction) {
-                template.routes.map(async (route) => {
-                    await processRouteInvoice(
-                        transaction,
-                        balance,
-                        store,
-                        route,
-                        baseUrl,
-                        apiKey,
-                        target_database,
-                        myStore,
-                        totalNonGarapinFee,
-                    );
-                });
-            } else {
-                Logger.log(
-                    `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
+            template.routes.map(async (route) => {
+                await processRouteInvoice(
+                    transaction,
+                    balance,
+                    store,
+                    route,
+                    baseUrl,
+                    apiKey,
+                    target_database,
+                    myStore,
+                    totalNonGarapinFee,
                 );
+            });
 
-                const endTime = new Date();
-                const startTime = new Date();
-                const executionTime = endTime - startTime;
+            // if (balance >= totalTransaction) {
+            //     template.routes.map(async (route) => {
+            //         await processRouteInvoice(
+            //             transaction,
+            //             balance,
+            //             store,
+            //             route,
+            //             baseUrl,
+            //             apiKey,
+            //             target_database,
+            //             myStore,
+            //             totalNonGarapinFee,
+            //         );
+            //     });
+            // } else {
+            //     Logger.log(
+            //         `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`
+            //     );
 
-                const existingLog = await AuditTrail.findOne({
-                    transactionId: transaction.invoice,
-                    store_name: store.store_name,
-                    status: "FAILED",
-                });
+            //     const endTime = new Date();
+            //     const startTime = new Date();
+            //     const executionTime = endTime - startTime;
 
-                if (!existingLog) {
-                    await AuditTrail.create({
-                        store_name: store.store_name,
-                        transactionId: transaction.invoice,
-                        source_user_id: "undefined",
-                        destination_user_id: "undefined",
-                        status: "FAILED",
-                        message: `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`,
-                        executionTime: executionTime,
-                        timestamp: endTime,
-                    });
+            //     const existingLog = await AuditTrail.findOne({
+            //         transactionId: transaction.invoice,
+            //         store_name: store.store_name,
+            //         status: "FAILED",
+            //     });
 
-                    const htmlContent = htmlContentFailed(transaction, myStore, balance);
+            //     if (!existingLog) {
+            //         await AuditTrail.create({
+            //             store_name: store.store_name,
+            //             transactionId: transaction.invoice,
+            //             source_user_id: "undefined",
+            //             destination_user_id: "undefined",
+            //             status: "FAILED",
+            //             message: `Store ${store.account_holder.id} has no balance for transaction ${transaction.invoice}`,
+            //             executionTime: executionTime,
+            //             timestamp: endTime,
+            //         });
 
-                    await sendNodeMailer(
-                        process.env.RECEIVER_EMAIL,
-                        "[FAILED] - Gagal Quick Release Dana Pending",
-                        htmlContent
-                    );
-                }
-            }
+            //         const htmlContent = htmlContentFailed(transaction, myStore, balance);
+
+            //         await sendNodeMailer(
+            //             process.env.RECEIVER_EMAIL,
+            //             "[FAILED] - Gagal Quick Release Dana Pending",
+            //             htmlContent
+            //         );
+            //     }
+            // }
         } else {
             Logger.log(`This store not have template ${transaction.invoice}`);
             updateTransaction(transaction, target_database, myStore);
