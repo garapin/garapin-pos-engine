@@ -24,10 +24,10 @@ function setupCronJobs() {
      cashPaymentEngine.checkPaymentCash();
    });
 
-  // cron.schedule(schedule, () => {
-  //   Logger.log("Menjalankan checkRakEngine");
-  //   rakEngine.checkRakEngine();
-  // });
+   cron.schedule(schedule, () => {
+     Logger.log("Menjalankan checkRakEngine");
+     rakEngine.checkRakEngine();
+   });
   cron.schedule(schedule, () => {
     Logger.log("Menjalankan cron check payment WITHDRAWL");
     withdrawlPaymentEngine.checkPaymentCash();
