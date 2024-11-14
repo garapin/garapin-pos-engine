@@ -50,15 +50,20 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
       })
       .lean();
     // console.log(transactions.length);
+    const accountId = storeModel.account_holder.id;
 
+    const balance = await getXenditBalanceById(accountId);
+    Logger.log(`Checking balance ${balance.data.balance}`);
     for (const transaction of transactions) {
       if (isValidReferenceId(transaction.invoice)) {
-        const accountId = storeModel.account_holder.id;
-
-        const balance = await getXenditBalanceById(accountId);
-        Logger.log(`Checking balance ${balance.data.balance}`);
-
-        if (transaction.total_with_fee > balance.data.balance) {
+        var itempending = 0;
+        // totalPendingAmount += pending.total_with_fee - pending.fee_garapin;
+        transaction.product.items.forEach((item) => {
+          const total =
+            (item.product.cost_price ?? item.product.cost) * item.quantity;
+          itempending += total;
+        });
+        if (itempending > balance.data.balance) {
           Logger.errorLog(
             `Amount is less than balance ${balance.data.balance}`
           );
