@@ -46,6 +46,7 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
       .find({
         bp_settlement_status: "NOT_SETTLED",
         payment_method: "CASH",
+        status: "SUCCEEDED",
       })
       .lean();
     // console.log(transactions.length);
