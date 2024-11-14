@@ -26,7 +26,10 @@ const processRoute = async ({
   const startTime = new Date();
 
   try {
-    if (route.destination_account_id !== null) {
+    if (
+      route.destination_account_id !== null &&
+      route.source_account_id !== route.destination_account_id
+    ) {
       Logger.log(
         `Routing to ${route.destination_account_id} for transaction ${transaction.reference_id}`
       );
