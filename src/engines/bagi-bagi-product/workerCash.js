@@ -4,20 +4,16 @@ import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.j
 import Logger from "../../utils/logger.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Cashflow, SettlementStatus } from "../../config/enums.js";
-import {
-  TransactionModel,
-  transactionSchema,
-} from "../../models/transactionModel.js";
-import { rakTransactionSchema } from "../../models/rakuTransactionModel.js";
+import { transactionSchema } from "../../models/transactionModel.js";
 import axios from "axios";
+import { storeSchema } from "../../models/storeModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const XENDIT_API_KEY = process.env.XENDIT_API_KEY;
 const XENDIT_URL = "https://api.xendit.co";
 
-const pool = workerpool.pool(path.resolve(__dirname, "routeWorker.js"), {
+const pool = workerpool.pool(path.resolve(__dirname, "routeWorkerCash.js"), {
   minWorkers: "max",
 });
 
@@ -26,58 +22,42 @@ const isValidReferenceId = (referenceId) => {
 };
 
 // Implement the logic that needs to run in a separate thread
-const processTransaction = async ({
-  transactions,
-  store,
-  accountId,
-  baseUrl,
-  apiKey,
-}) => {
+const processTransaction = async ({ store, baseUrl, apiKey }) => {
   let storeDatabase = null;
+
   try {
+    const dbname = store.db_name;
+    // console.log("xxzxzxzxxz" + dbname);
+
+    storeDatabase = await connectTargetDatabase(dbname);
+    const TemplateModel = storeDatabase.model(
+      "Split_Payment_Rule_Id",
+      splitPaymentRuleIdScheme
+    );
+
+    const transactionModel = storeDatabase.model(
+      "Transaction",
+      transactionSchema
+    );
+    const storeModel = await storeDatabase
+      .model("Store", storeSchema)
+      .findOne({});
+    const transactions = await transactionModel
+      .find({
+        bp_settlement_status: "NOT_SETTLED",
+        payment_method: "CASH",
+      })
+      .lean();
+    // console.log(transactions.length);
+
     for (const transaction of transactions) {
-      if (
-        isValidReferenceId(transaction.reference_id) &&
-        transaction.settlement_status === SettlementStatus.SETTLED &&
-        transaction.cashflow === Cashflow.MONEY_IN
-      ) {
-        const dbname = transaction.reference_id.split("&&")[1];
-        storeDatabase = await connectTargetDatabase(dbname);
-
-        const RaktransactionModel = storeDatabase.model(
-          "rakTransaction",
-          rakTransactionSchema
-        );
-        await RaktransactionModel.updateOne(
-          { invoice: transaction.reference_id },
-          { settlement_status: "SETTLED" }
-        );
-
-        const TemplateModel = storeDatabase.model(
-          "Split_Payment_Rule_Id",
-          splitPaymentRuleIdScheme
-        );
-
-        const transactionModel = storeDatabase.model(
-          "Transaction",
-          transactionSchema
-        );
-
-        var currenttrx = await transactionModel
-          .findOne({
-            invoice: transaction.reference_id,
-            settlement_status: "SETTLED",
-            bp_settlement_status: "NOT_SETTLED",
-          })
-          .lean();
-
-        if (currenttrx === null) {
-          // Logger.errorLog("Transaction not found");
-          continue;
-        }
+      if (isValidReferenceId(transaction.invoice)) {
+        const accountId = storeModel.account_holder.id;
 
         const balance = await getXenditBalanceById(accountId);
-        if (currenttrx.total_with_fee > balance.data.balance) {
+        Logger.log(`Checking balance ${balance.data.balance}`);
+
+        if (transaction.total_with_fee > balance.data.balance) {
           Logger.errorLog(
             `Amount is less than balance ${balance.data.balance}`
           );
@@ -85,9 +65,11 @@ const processTransaction = async ({
           continue;
         }
 
+        // xxx;
+
         try {
           var updatedTransaction = await transactionModel.findOneAndUpdate(
-            { invoice: transaction.reference_id },
+            { invoice: transaction.invoice },
             { bp_settlement_status: "SETTLED" },
             { new: true }
           );
@@ -103,23 +85,16 @@ const processTransaction = async ({
         // );
 
         let listtemplate;
-        Logger.log(`transactionssss${transaction.reference_id}`);
+        Logger.log(`transactionssss${transaction.invoice}`);
 
-        if (transaction.reference_id.endsWith("&&RAK")) {
-          listtemplate = await TemplateModel.find({
-            invoice: transaction.reference_id,
-          }).lean();
-        } else {
-          listtemplate = await TemplateModel.find({
-            name: transaction.reference_id,
-          }).lean();
-        }
-
+        listtemplate = await TemplateModel.find({
+          name: transaction.invoice,
+        }).lean();
         Logger.log(`listtemplatesss${listtemplate.length}`);
 
         if (listtemplate?.length) {
           Logger.log(
-            `Processing invoice Bagi Product ${transaction.reference_id} with amount ${transaction.amount}`
+            `Processing invoice Bagi Product ${transaction.invoice} with amount ${transaction.total_with_fee}`
           );
 
           // Gunakan Promise.all() untuk menjalankan proses secara paralel untuk semua template dan routes
@@ -149,7 +124,7 @@ const processTransaction = async ({
                   .catch((error) => {
                     // Menangani error masing-masing dalam promise agar tidak mempengaruhi promise lainnya
                     Logger.errorLog(
-                      `Error processing route for transaction ${transaction.reference_id}: ${error.message || error}`
+                      `Error processing route for transaction ${transaction.invoice}: ${error.message || error}`
                     );
                   });
 

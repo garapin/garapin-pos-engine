@@ -28,7 +28,7 @@ const processTransaction = async ({
 }) => {
   let storeDatabase = null;
   try {
-    storeDatabase = await connectTargetDatabase(store.db_name);
+    storeDatabase = await connectTargetDatabase(store);
 
     const TransactionModel = storeDatabase.model(
       "Transaction",
@@ -41,11 +41,10 @@ const processTransaction = async ({
         transaction.settlement_status === SettlementStatus.SETTLED &&
         transaction.cashflow === Cashflow.MONEY_IN
       ) {
-
         // Periksa status penyelesaian di database
         const dbTransaction = await TransactionModel.findOne({
           invoice: transaction.reference_id,
-          settlement_status: "NOT_SETTLED"
+          settlement_status: "NOT_SETTLED",
         }).lean();
 
         if (dbTransaction) {
@@ -53,21 +52,21 @@ const processTransaction = async ({
             { invoice: transaction.reference_id },
             { settlement_status: "SETTLED" }
           );
-  
+
           const TemplateModel = storeDatabase.model(
             "Split_Payment_Rule_Id",
             splitPaymentRuleIdScheme
           );
-  
+
           const template = await TemplateModel.findOne({
             invoice: transaction.reference_id,
           }).lean();
-  
+
           if (template) {
             Logger.log(
               `Processing invoice ${transaction.reference_id} with amount ${transaction.amount}`
             );
-  
+
             for (const route of template.routes) {
               if (
                 route.destination_account_id !== route.source_account_id ||
