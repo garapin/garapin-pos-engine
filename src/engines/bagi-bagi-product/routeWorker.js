@@ -166,7 +166,7 @@ const splitTransaction = async (
 
       try {
         const dbname = transaction.reference_id.split("&&")[1];
-        storeDatabase = await connectTargetDatabase(dbname);
+        const storeDatabase = await connectTargetDatabase(dbname);
 
         const transactionModel = storeDatabase.model(
           "Transaction",
@@ -203,6 +203,22 @@ const splitTransaction = async (
       }
     }
   } catch (error) {
+    try {
+      const dbname = transaction.reference_id.split("&&")[1];
+      const storeDatabase = await connectTargetDatabase(dbname);
+
+      const transactionModel = storeDatabase.model(
+        "Transaction",
+        transactionSchema
+      );
+      var updatedTransaction = await transactionModel.findOneAndUpdate(
+        { invoice: transaction.reference_id },
+        { bp_settlement_status: "NOT_SETTLED" },
+        { new: true }
+      );
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+    }
     const endTime = new Date();
     const executionTime = endTime - startTime;
 
