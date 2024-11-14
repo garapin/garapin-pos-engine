@@ -85,6 +85,16 @@ const processTransaction = async ({
           continue;
         }
 
+        try {
+          var updatedTransaction = await transactionModel.findOneAndUpdate(
+            { invoice: transaction.reference_id },
+            { bp_settlement_status: "SETTLED" },
+            { new: true }
+          );
+        } catch (error) {
+          console.error("Error updating transaction:", error);
+        }
+
         // Logger.errorLog(
         //   "currenttrx",
         //   updatedTransaction.invoice +
