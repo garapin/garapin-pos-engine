@@ -34,14 +34,14 @@ class CashPaymentEngine {
     try {
       const promises = allStore.map((store) => {
         const storeData = JSON.parse(JSON.stringify(store));
-        const poolPromise1 = this.pool.exec("processStore", [
-          { store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey },
-        ]);
-        // const processBagiPoolPromise = this.bagipool.exec(
-        //   "processTransaction",
-        //   [{ store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey }]
-        // );
-        return Promise.all([poolPromise1]);
+        // const poolPromise1 = this.pool.exec("processStore", [
+        //   { store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey },
+        // ]);
+        const processBagiPoolPromise = this.bagipool.exec(
+          "processTransaction",
+          [{ store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey }]
+        );
+        return Promise.all([processBagiPoolPromise]);
       });
 
       await Promise.all(promises);
