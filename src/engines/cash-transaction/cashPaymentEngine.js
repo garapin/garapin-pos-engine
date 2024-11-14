@@ -12,7 +12,7 @@ const targetDir = path.join(parentDir, "bagi-bagi-product");
 
 class CashPaymentEngine {
   constructor() {
-    console.log(path.resolve(targetDir, "workerCash.js"));
+    // console.log(path.resolve(targetDir, "workerCash.js"));
 
     this.apiKey = process.env.XENDIT_API_KEY;
     this.baseUrl = "https://api.xendit.co";
