@@ -8,7 +8,10 @@ import {
 } from "../../models/configTransaction.js";
 import { connectTargetDatabase } from "../../config/targetDatabase.js";
 import { auditTrailSchema } from "../../models/auditTrailModel.js";
-
+import {
+  TransactionModel,
+  transactionSchema,
+} from "../../models/transactionModel.js";
 const processRoute = async ({
   route,
   transaction,
@@ -160,6 +163,23 @@ const splitTransaction = async (
       }
     } else {
       Logger.log(`Failed to split transaction ${transaction.reference_id}`);
+
+      try {
+        const dbname = transaction.reference_id.split("&&")[1];
+        storeDatabase = await connectTargetDatabase(dbname);
+
+        const transactionModel = storeDatabase.model(
+          "Transaction",
+          transactionSchema
+        );
+        var updatedTransaction = await transactionModel.findOneAndUpdate(
+          { invoice: transaction.reference_id },
+          { bp_settlement_status: "NOT_SETTLED" },
+          { new: true }
+        );
+      } catch (error) {
+        console.error("Error updating transaction:", error);
+      }
 
       // Cek apakah log audit trail sudah ada
       const existingLog = await AuditTrail.findOne({
