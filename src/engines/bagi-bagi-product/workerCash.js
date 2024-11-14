@@ -50,6 +50,11 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
       })
       .lean();
     // console.log(transactions.length);
+
+    if (transactions.length === 0) {
+      Logger.log("Transaction list is empty");
+      return;
+    }
     const accountId = storeModel.account_holder.id;
 
     const balance = await getXenditBalanceById(accountId);
