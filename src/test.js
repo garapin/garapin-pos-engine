@@ -1,3 +1,4 @@
+import mongoose from "./config/db.js";
 import CashPaymentEngine from "./engines/cash-transaction/cashPaymentEngine.js";
 import TransactionEngine from "./engines/bagi-bagi-transaction/transactionEngine.js";
 
