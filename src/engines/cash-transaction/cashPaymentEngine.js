@@ -37,11 +37,11 @@ class CashPaymentEngine {
         const poolPromise1 = this.pool.exec("processStore", [
           { store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey },
         ]);
-        const processBagiPoolPromise = this.bagipool.exec(
-          "processTransaction",
-          [{ store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey }]
-        );
-        return Promise.all([processBagiPoolPromise, poolPromise1]);
+        // const processBagiPoolPromise = this.bagipool.exec(
+        //   "processTransaction",
+        //   [{ store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey }]
+        // );
+        return Promise.all([poolPromise1]);
       });
 
       await Promise.all(promises);
