@@ -94,7 +94,7 @@ const checkListTransaction = async (
     }
 
     if (transactionList.length > 0) {
-      const balance = 0;
+      const balance = 2000000;
 
       transactionList.map(async (transaction) => {
         Logger.log(
