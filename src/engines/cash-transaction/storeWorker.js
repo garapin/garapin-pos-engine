@@ -96,12 +96,8 @@ const checkListTransaction = async (
     if (transactionList.length > 0) {
       const balance = await getBalance(store, baseUrl, apiKey);
 
-      Logger.errorLog(
-        `Balance store: ${balance} - Transaction total: ${transactionList.invoice}`
-      );
-
       transactionList.map(async (transaction) => {
-        Logger.log(
+        Logger.errorLog(
           `Balance store: ${balance} - Transaction total: ${transaction.invoice}`
         );
 
