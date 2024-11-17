@@ -94,7 +94,7 @@ const checkListTransaction = async (
     }
 
     if (transactionList.length > 0) {
-      const balance = await getBalance(store, baseUrl, apiKey);
+      const balance = 0;
 
       transactionList.map(async (transaction) => {
         Logger.log(
