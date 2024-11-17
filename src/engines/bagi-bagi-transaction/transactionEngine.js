@@ -6,7 +6,6 @@ import workerpool from "workerpool";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DatabaseModel } from "../../models/databaseModel.js";
-import moment from "moment";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

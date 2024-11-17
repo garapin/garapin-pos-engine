@@ -1,11 +1,6 @@
 import workerpool from "workerpool";
 import Logger from "../../utils/logger.js"; // Pastikan jalur dan ekstensi benar
-import { ChannelCategory, RouteRole } from "../../config/enums.js";
 import axios from "axios";
-import {
-  ConfigTransactionModel,
-  configTransactionSchema,
-} from "../../models/configTransaction.js";
 import { connectTargetDatabase } from "../../config/targetDatabase.js";
 import { auditTrailSchema } from "../../models/auditTrailModel.js";
 

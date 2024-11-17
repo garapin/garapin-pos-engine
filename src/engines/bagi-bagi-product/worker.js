@@ -5,10 +5,7 @@ import Logger from "../../utils/logger.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Cashflow, SettlementStatus } from "../../config/enums.js";
-import {
-  TransactionModel,
-  transactionSchema,
-} from "../../models/transactionModel.js";
+import { transactionSchema } from "../../models/transactionModel.js";
 import { rakTransactionSchema } from "../../models/rakuTransactionModel.js";
 import axios from "axios";
 
