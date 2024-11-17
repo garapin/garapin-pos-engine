@@ -196,7 +196,7 @@ const processSplitTransactionCash = async (
       }
     } else {
       Logger.log(`This store not have template ${transaction.invoice}`);
-      updateTransaction(transaction, target_database);
+      // updateTransaction(transaction, target_database);
     }
   } catch (error) {
     Logger.errorLog("Error fetching template", error);
@@ -272,7 +272,7 @@ const checkAndSplitTransaction = async (
       } else {
         Logger.log(`Transaction ${transaction.invoice} has already been split`);
         Logger.log("Update Transaction main invoice");
-        await updateTransaction(transaction, target_database);
+        // await updateTransaction(transaction, target_database);
       }
     }
 
@@ -405,17 +405,106 @@ const splitTransaction = async (
       }
     );
 
-    if (postTransfer.status === 200) {
-      Logger.log(
-        `Transaction ${transaction.invoice + "&&" + route.reference_id} successfully split`
+    try {
+      const postTransfer = await axios.post(
+        `${baseUrl}/transfers`,
+        transferBody,
+        {
+          headers: {
+            Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
-      Logger.log("Update Transaction main invoice");
-      await updateTransaction(transaction, target_database);
-    } else {
-      Logger.log(
-        `Failed to split transaction ${transaction.invoice + "&&" + route.reference_id}`
+      const endTime = new Date();
+      const executionTime = endTime - startTime;
+
+      if (postTransfer.status === 200) {
+        Logger.log(`Transaction ${transaction.invoice} successfully split`);
+
+        // Cek apakah log audit trail sudah ada
+        const existingLog = await AuditTrail.findOne({
+          transactionId: transaction.invoice,
+          store_name: route.reference_id,
+          status: "SUCCESS",
+        });
+
+        if (!existingLog) {
+          // Simpan log audit trail
+          await AuditTrail.create({
+            store_name: route.reference_id,
+            transactionId: transaction.invoice,
+            source_user_id: route.source_account_id,
+            destination_user_id: route.destination_account_id,
+            status: "SUCCESS",
+            message: `Transaction ${transaction.invoice} successfully split`,
+            executionTime: executionTime,
+            timestamp: endTime,
+          });
+        }
+
+        updateTransaction(transaction, target_database, "SETTLED");
+      } else {
+        Logger.log(`Failed to split transaction ${transaction.invoice}`);
+
+        // Cek apakah log audit trail sudah ada
+        const existingLog = await AuditTrail.findOne({
+          transactionId: transaction.invoice,
+          store_name: route.reference_id,
+          status: "FAILED",
+        });
+
+        if (!existingLog) {
+          // Simpan log audit trail
+          await AuditTrail.create({
+            store_name: route.reference_id,
+            transactionId: transaction.invoice,
+            source_user_id: route.source_account_id,
+            destination_user_id: route.destination_account_id,
+            status: "FAILED",
+            message: `Failed to split transaction ${transaction.invoice}`,
+            executionTime: executionTime,
+            timestamp: endTime,
+          });
+        }
+        updateTransaction(transaction, target_database, "NOT_SETTLED");
+      }
+    } catch (error) {
+      updateTransaction(transaction, target_database, "NOT_SETTLED");
+
+      const endTime = new Date();
+      const executionTime = endTime - startTime;
+
+      const { response } = error;
+      const { request, ...errorObject } = response;
+
+      Logger.errorLog(
+        "Error during transaction split",
+        errorObject.data.message
       );
+
+      // Cek apakah log audit trail sudah ada
+      const existingLog = await AuditTrail.findOne({
+        transactionId: transaction.invoice,
+        store_name: route.reference_id,
+        status: "ERROR",
+      });
+
+      if (!existingLog) {
+        // Simpan log audit trail
+        await AuditTrail.create({
+          store_name: route.reference_id,
+          transactionId: transaction.invoice,
+          source_user_id: route.source_account_id,
+          destination_user_id: route.destination_account_id,
+          status: "ERROR",
+          code: errorObject.data.error_code,
+          message: `${errorObject.data.message}`,
+          executionTime: executionTime,
+          timestamp: endTime,
+        });
+      }
     }
     return { success: true };
   } catch (error) {
@@ -423,7 +512,7 @@ const splitTransaction = async (
   }
 };
 
-const updateTransaction = async (transaction, target_database) => {
+const updateTransaction = async (transaction, target_database, status) => {
   Logger.log(
     `Update transaction ${transaction.invoice} for ${target_database}`
   );
@@ -432,7 +521,7 @@ const updateTransaction = async (transaction, target_database) => {
   try {
     const updatedTransaction = await TransactionModel.findOneAndUpdate(
       { invoice: transaction.invoice },
-      { status: "SUCCEEDED", settlement_status: "SETTLED" },
+      { status: "SUCCEEDED", settlement_status: status },
       { new: true } // Mengembalikan dokumen yang diperbarui
     );
     if (updatedTransaction) {
