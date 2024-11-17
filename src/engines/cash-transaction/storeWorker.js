@@ -97,9 +97,9 @@ const checkListTransaction = async (
       const balance = await getBalance(store, baseUrl, apiKey);
 
       transactionList.map(async (transaction) => {
-        // Logger.log(
-        //   `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
-        // );
+        Logger.log(
+          `Balance store: ${balance} - Transaction total: ${transaction.invoice}`
+        );
 
         await processSplitTransactionCash(
           transaction,
