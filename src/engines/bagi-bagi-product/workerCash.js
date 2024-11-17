@@ -172,15 +172,43 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
 
 const getXenditBalanceById = async (id) => {
   const url = `${XENDIT_URL}/balance`;
-  return axios.get(url, {
-    headers: {
-      Authorization: `Basic ${Buffer.from(XENDIT_API_KEY + ":").toString(
-        "base64"
-      )}`,
-      "for-user-id": id,
-    },
-  });
+
+  // Fungsi untuk menunda eksekusi selama beberapa milidetik
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  let attempt = 0;
+  const maxRetries = 5; // Jumlah maksimal percobaan
+
+  while (attempt < maxRetries) {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Basic ${Buffer.from(XENDIT_API_KEY + ":").toString(
+            "base64"
+          )}`,
+          "for-user-id": id,
+        },
+      });
+      return response.data; // Kembalikan data jika berhasil
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        attempt++;
+        console.warn(
+          `Attempt ${attempt}: Received status 429, retrying in 5 seconds...`
+        );
+        await delay(5000); // Jeda 5 detik
+      } else {
+        // Lempar error jika bukan kode status 429
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to fetch balance after ${maxRetries} attempts due to too many requests.`
+  );
 };
+
 // Process the transaction and send the result back to the main thread
 workerpool.worker({
   processTransaction: processTransaction,
