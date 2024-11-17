@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { number } from "zod";
 
 const transactionSchema = new mongoose.Schema(
   {
@@ -21,6 +22,10 @@ const transactionSchema = new mongoose.Schema(
     settlement_status: {
       type: String,
       default: "",
+    },
+    engine_info: {
+      type: String,
+      default: null,
     },
     bp_settlement_status: {
       type: String,

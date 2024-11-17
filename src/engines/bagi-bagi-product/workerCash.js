@@ -72,6 +72,17 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
           Logger.errorLog(
             `Amount is less than balance ${balance.data.balance}`
           );
+          try {
+            var updatedTransaction = await transactionModel.findOneAndUpdate(
+              { invoice: transaction.invoice },
+              {
+                engine_info: `Insufficient balance Rp ${balance.data.balance}`,
+              },
+              { new: true }
+            );
+          } catch (error) {
+            console.error("Error updating transaction:", error);
+          }
 
           continue;
         }

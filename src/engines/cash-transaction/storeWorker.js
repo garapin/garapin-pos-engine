@@ -22,7 +22,10 @@ const processStore = async ({ store, baseUrl, apiKey }) => {
     db = await connectTargetDatabase(store.db_name);
     await getTransactionStoreTypeByDatabase(store.db_name, baseUrl, apiKey);
   } catch (error) {
-    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+    Logger.errorLog(
+      "processStore Gagal menghubungkan ke database di store worker",
+      error
+    );
   }
 };
 
@@ -38,15 +41,9 @@ const getTransactionStoreTypeByDatabase = async (
 
   if (storeData.length > 0) {
     for (const store of storeData) {
-      const balance = await getBalance(store, baseUrl, apiKey);
-      console.log(`Balance store ${store.store_name} Rp ${balance}`);
-      await checkListTransaction(
-        target_database,
-        store,
-        balance,
-        baseUrl,
-        apiKey
-      );
+      // const balance = await getBalance(store, baseUrl, apiKey);
+      // console.log(`Balance store ${store.store_name} Rp ${balance}`);
+      await checkListTransaction(target_database, store, baseUrl, apiKey);
     }
   }
 
@@ -60,27 +57,20 @@ const getTransactionStoreTypeByDatabase = async (
       },
     };
 
-    const balance = await getBalance(store, baseUrl, apiKey);
-    console.log(`Balance store Garapin POS Rp ${balance}`);
-    await checkListTransaction(
-      target_database,
-      store,
-      balance,
-      baseUrl,
-      apiKey
-    );
+    // console.log(`Balance store Garapin POS Rp ${balance}`);
+    await checkListTransaction(target_database, store, baseUrl, apiKey);
   }
 };
 
 const checkListTransaction = async (
   target_database,
   store,
-  balance,
   baseUrl,
   apiKey
 ) => {
   try {
     Logger.log(`Checking transaction for store ${store.store_name}`);
+
     const StoreModelInStoreDatabase = db.model("Store", storeSchema);
     // Check Transaction List
     const TransactionModel = db.model("Transaction", transactionSchema);
@@ -104,10 +94,12 @@ const checkListTransaction = async (
     }
 
     if (transactionList.length > 0) {
+      const balance = await getBalance(store, baseUrl, apiKey);
+
       transactionList.map(async (transaction) => {
-        Logger.log(
-          `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
-        );
+        // Logger.log(
+        //   `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
+        // );
 
         await processSplitTransactionCash(
           transaction,
@@ -120,7 +112,10 @@ const checkListTransaction = async (
       });
     }
   } catch (error) {
-    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+    Logger.errorLog(
+      "checkListTransaction checkListTransactionGagal menghubungkan ke database di store worker",
+      error.message + " " + target_database
+    );
     return { error: error.message };
   }
 };
@@ -293,7 +288,14 @@ const checkAndSplitTransaction = async (
     }
     return { success: true };
   } catch (error) {
-    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+    Logger.errorLog(
+      "checkAndSplitTransaction Gagal menghubungkan ke database di store worker",
+      target_database
+    );
+    Logger.errorLog(
+      "checkAndSplitTransaction Gagal menghubungkan ke database di store worker",
+      error
+    );
   }
 };
 
@@ -363,7 +365,10 @@ const checkAndSplitChild = async (
     }
     return { success: true };
   } catch (error) {
-    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+    Logger.errorLog(
+      `Gagal menghubungkan ke database ${target_database} di store worker`,
+      error
+    );
   } finally {
     // if (db) {
     //   db.close(); // Menutup koneksi database
