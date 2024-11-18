@@ -143,21 +143,21 @@ class TransactionEngine {
           },
         ]);
 
-        // const processBagiPoolPromise = this.bagipool.exec(
-        //   "processTransaction",
-        //   [
-        //     {
-        //       transactions: transactions,
-        //       store: dbName,
-        //       accountId: this.accountId,
-        //       baseUrl: this.baseUrl,
-        //       apiKey: this.apiKey,
-        //     },
-        //   ]
-        // );
+        const processBagiPoolPromise = this.bagipool.exec(
+          "processTransaction",
+          [
+            {
+              transactions: transactions,
+              store: dbName,
+              accountId: this.accountId,
+              baseUrl: this.baseUrl,
+              apiKey: this.apiKey,
+            },
+          ]
+        );
 
         // Tunggu kedua promise selesai secara paralel
-        return Promise.all([processPoolPromise]).then(
+        return Promise.all([processPoolPromise, processBagiPoolPromise]).then(
           ([result, resultbagi]) => {
             Logger.log(result);
             Logger.log(resultbagi);
