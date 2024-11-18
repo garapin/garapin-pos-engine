@@ -9,7 +9,7 @@ import WithdrawlPaymentEngine from "../engines/withdrawl-transaction/withdrawlPa
 const transactionEngine = new TransactionEngine();
 const cashPaymentEngine = new CashPaymentEngine();
 const withdrawlPaymentEngine = new WithdrawlPaymentEngine();
-const rakEngine = new RakEngine();
+
 function setupCronJobs() {
   const schedule = process.env.CRON_SCHEDULE || "0 * * * *";
   cron.schedule(schedule, () => {

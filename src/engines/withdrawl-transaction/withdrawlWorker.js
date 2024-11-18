@@ -18,6 +18,13 @@ const __dirname = path.dirname(__filename);
 
 let db = null;
 
+const garapinPosStore = {
+  store_name: "Garapin POS",
+  account_holder: {
+    id: process.env.XENDIT_ACCOUNT_QUICK_RELEASE,
+  },
+};
+
 const limiter = new Bottleneck({
   minTime: 1000, // Set minimum time between requests to 1 second
   maxConcurrent: 1, // Allow only one request at a time
@@ -29,7 +36,10 @@ const processStoreWithdrawl = async ({ store, baseUrl, apiKey }) => {
     db = await connectTargetDatabase(store.db_name);
     await getTransactionStoreTypeByDatabase(store.db_name, baseUrl, apiKey);
   } catch (error) {
-    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+    Logger.errorLog(
+      "Gagal processStoreWithdrawl menghubungkan ke database di store worker",
+      error
+    );
   }
 };
 
@@ -43,23 +53,9 @@ const getTransactionStoreTypeByDatabase = async (
 
   if (storeData.length > 0) {
     for (const store of storeData) {
-      var garapinPosStore = {
-        store_name: "Garapin POS",
-        account_holder: {
-          id: process.env.XENDIT_ACCOUNT_QUICK_RELEASE,
-        },
-      };
-
-      const balance = await getBalance(garapinPosStore, baseUrl, apiKey);
-
-      Logger.log(`Balance store XENDIT QUICK RELEASE Rp ${balance}`);
-      await checkListTransaction(
-        target_database,
-        garapinPosStore,
-        balance,
-        baseUrl,
-        apiKey
-      );
+      // Logger.log(`Balance store XENDIT QUICK RELEASE Rp ${balance}`);
+      await checkListTransaction(target_database, store, baseUrl, apiKey);
+      // Logger.log(`store.db_name ${store}`);
     }
   }
 };
@@ -67,13 +63,10 @@ const getTransactionStoreTypeByDatabase = async (
 const checkListTransaction = async (
   target_database,
   store,
-  balance,
   baseUrl,
   apiKey
 ) => {
   try {
-    Logger.log(`Checking transaction for store ${store.store_name}`);
-
     // Check Transaction List
     const TransactionModel = db.model("Transaction", transactionSchema);
     const transactionList = await TransactionModel.find({
@@ -81,37 +74,43 @@ const checkListTransaction = async (
       status: "PENDING",
     });
 
+    Logger.log(`Transaction list length: ${transactionList.length}`);
+
     if (transactionList.length > 0) {
+      const balance = await getBalance(garapinPosStore, baseUrl, apiKey);
       transactionList.map(async (transaction) => {
         Logger.log(
           `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
         );
 
         await processSplitTransactionCash(
+          target_database,
           transaction,
           balance,
           store,
           baseUrl,
-          apiKey,
-          target_database
+          apiKey
         );
       });
     } else {
-      Logger.log(`No transaction found for store ${store.store_name}`);
+      Logger.log(`No transaction found `);
     }
   } catch (error) {
-    Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
+    Logger.errorLog(
+      "Gagal checkListTransaction menghubungkan ke database di store worker",
+      error
+    );
     return { error: error.message };
   }
 };
 
 const processSplitTransactionCash = async (
+  target_database,
   transaction,
   balance,
   store,
   baseUrl,
-  apiKey,
-  target_database
+  apiKey
 ) => {
   const db = await connectTargetDatabase("garapin_pos");
   const AuditTrail = db.model("audit_trail", auditTrailSchema);
@@ -119,6 +118,7 @@ const processSplitTransactionCash = async (
   Logger.log(`Processing transaction ${transaction.invoice}`);
   try {
     const dbTarget = await connectTargetDatabase(target_database);
+    Logger.log(`Processingxxtransaction ${transaction.invoice}`);
     const TemplateModel = dbTarget.model(
       "Split_Payment_Rule_Id",
       splitPaymentRuleIdScheme
@@ -519,10 +519,10 @@ const updateTransaction = async (transaction, target_database, store) => {
 
     if (updatedTransaction && updatedTransactionParent) {
       Logger.log("Transaction successfully updated");
-      Logger.log(updatedTransaction);
+      // Logger.log(updatedTransaction);
     } else {
       Logger.log("Transaction not found or not updated");
-      Logger.log(updatedTransaction);
+      // Logger.log(updatedTransaction);
     }
   } catch (error) {
     Logger.errorLog("Error updating transaction", error);
@@ -575,11 +575,11 @@ const fetchTransactionDestination = async (
   baseUrl,
   apiKey
 ) => {
-  Logger.log("MASUK FETCH TRANSACTION DESTINATION");
-  Logger.log(route.destination_account_id);
-  Logger.log(transaction.invoice + "&&" + route.reference_id);
-  Logger.log(baseUrl);
-  Logger.log(apiKey);
+  // Logger.log("MASUK FETCH TRANSACTION DESTINATION");
+  // Logger.log(route.destination_account_id);
+  // Logger.log(transaction.invoice + "&&" + route.reference_id);
+  // Logger.log(baseUrl);
+  // Logger.log(apiKey);
   const url = `${baseUrl}/transactions`;
   return axios.get(url, {
     headers: {
@@ -701,7 +701,7 @@ const sendNodeMailer = async (receiver, subject, htmlContent) => {
     if (error) {
       console.log(error);
     } else {
-      console.log("Email sent: " + info.response);
+      // console.log("Email sent: " + info.response);
     }
   });
 };
