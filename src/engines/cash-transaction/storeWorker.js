@@ -285,7 +285,8 @@ const checkAndSplitTransaction = async (
         );
       } else {
         Logger.log(`Transaction ${transaction.invoice} has already been split`);
-        updateTransaction(transaction, target_database, "SETTLED");
+        updateTransaction(transaction, target_database, true);
+
         Logger.log("Update Transaction main invoice");
         // await updateTransaction(transaction, target_database);
       }
@@ -431,7 +432,7 @@ const splitTransaction = async (
     const executionTime = endTime - startTime;
 
     if (postTransfer.status === 200) {
-      updateTransaction(transaction, target_database, "SETTLED");
+      updateTransaction(transaction, target_database, true);
 
       Logger.log(`Transaction ${transaction.invoice} successfully split`);
 
@@ -456,7 +457,7 @@ const splitTransaction = async (
         });
       }
     } else {
-      updateTransaction(transaction, target_database, "NOT_SETTLED");
+      updateTransaction(transaction, target_database, false);
 
       Logger.log(`Failed to split transaction ${transaction.invoice}`);
 
@@ -482,7 +483,7 @@ const splitTransaction = async (
       }
     }
   } catch (error) {
-    updateTransaction(transaction, target_database, "NOT_SETTLED");
+    updateTransaction(transaction, target_database, false);
 
     const endTime = new Date();
     const executionTime = endTime - startTime;
@@ -516,7 +517,7 @@ const splitTransaction = async (
   }
 };
 
-const updateTransaction = async (transaction, target_database, status) => {
+const updateTransaction = async (transaction, target_database, success) => {
   Logger.log(
     `Update transaction ${transaction.invoice} for ${target_database}`
   );
@@ -525,7 +526,10 @@ const updateTransaction = async (transaction, target_database, status) => {
   try {
     const updatedTransaction = await TransactionModel.findOneAndUpdate(
       { invoice: transaction.invoice },
-      { status: "SUCCEEDED", settlement_status: status },
+      {
+        status: success ? "SUCCEEDED" : "PENDING_TRANSFER",
+        settlement_status: success ? "SETTLED" : "NOT_SETTLED",
+      },
       { new: true } // Mengembalikan dokumen yang diperbarui
     );
     if (updatedTransaction) {
