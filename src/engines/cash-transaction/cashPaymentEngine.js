@@ -17,12 +17,12 @@ class CashPaymentEngine {
     this.apiKey = process.env.XENDIT_API_KEY;
     this.baseUrl = "https://api.xendit.co";
     this.pool = workerpool.pool(path.resolve(__dirname, "storeWorker.js"), {
-      minWorkers: 5,
+      minWorkers: 1,
       maxWorkers: 10, // Set
     });
     this.bagipool = workerpool.pool(path.resolve(targetDir, "workerCash.js"), {
       //minWorkers: 5,
-      minWorkers: "max",
+      minWorkers: 1,
       maxWorkers: 10, // Set maximum workers to 20
     });
   }
@@ -31,9 +31,11 @@ class CashPaymentEngine {
     const allStore = await this.getAllStore();
 
     console.time("Worker Pool Cash");
+
     try {
       const promises = allStore.map((store) => {
         const storeData = JSON.parse(JSON.stringify(store));
+
         const poolPromise1 = this.pool.exec("processStore", [
           { store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey },
         ]);

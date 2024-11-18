@@ -15,7 +15,7 @@ const XENDIT_API_KEY = process.env.XENDIT_API_KEY;
 const XENDIT_URL = "https://api.xendit.co";
 
 const pool = workerpool.pool(path.resolve(__dirname, "routeWorker.js"), {
-  minWorkers: "max",
+  minWorkers: 1,
 });
 
 const isValidReferenceId = (referenceId) => {

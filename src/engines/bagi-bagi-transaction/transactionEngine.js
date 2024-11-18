@@ -21,12 +21,12 @@ class TransactionEngine {
     this.processedTransactions = new Set();
     this.pool = workerpool.pool(path.resolve(__dirname, "worker.js"), {
       //minWorkers: 5,
-      minWorkers: "max",
+      minWorkers: 1,
       maxWorkers: 10, // Set maximum workers to 20
     });
     this.bagipool = workerpool.pool(path.resolve(targetDir, "worker.js"), {
       //minWorkers: 5,
-      minWorkers: "max",
+      minWorkers: 1,
       maxWorkers: 10, // Set maximum workers to 20
     });
   }
@@ -120,12 +120,13 @@ class TransactionEngine {
       const promises = Object.keys(groupedTransactions).map((dbName) => {
         var transactions = groupedTransactions[dbName];
 
-        console.log(`Grup untuk db_name: ${dbName}`);
-        console.log(transactions.length); // Tampilkan atau proses transaksi dalam grup ini
-
         transactions = transactions.filter((transaction) => {
           return !transaction.reference_id.includes("&&QUICK_RELEASE");
         });
+        // console.log(`Grup untuk db_name: ${dbName}`);
+        // transactions.forEach((element) => {
+        //   console.log("element.reference_id", element.reference_id);
+        // });
 
         // transactions.forEach((element) => {
         //   console.log(element.reference_id);
@@ -142,21 +143,21 @@ class TransactionEngine {
           },
         ]);
 
-        const processBagiPoolPromise = this.bagipool.exec(
-          "processTransaction",
-          [
-            {
-              transactions: transactions,
-              store: dbName,
-              accountId: this.accountId,
-              baseUrl: this.baseUrl,
-              apiKey: this.apiKey,
-            },
-          ]
-        );
+        // const processBagiPoolPromise = this.bagipool.exec(
+        //   "processTransaction",
+        //   [
+        //     {
+        //       transactions: transactions,
+        //       store: dbName,
+        //       accountId: this.accountId,
+        //       baseUrl: this.baseUrl,
+        //       apiKey: this.apiKey,
+        //     },
+        //   ]
+        // );
 
         // Tunggu kedua promise selesai secara paralel
-        return Promise.all([processPoolPromise, processBagiPoolPromise]).then(
+        return Promise.all([processPoolPromise]).then(
           ([result, resultbagi]) => {
             Logger.log(result);
             Logger.log(resultbagi);
@@ -181,7 +182,7 @@ class TransactionEngine {
       //   "Transaksi yang belum diproses:",
       //   filteredTransactions.length
       // );
-      Logger.errorLog("Transaksi yang sudah diproses:", allTransactions.length);
+      // Logger.errorLog("Transaksi yang sudah diproses:", allTransactions.length);
 
       // Proses transaksi yang sudah difilter
       // const transactionChunks = this.chunkArray(filteredTransactions, 5);

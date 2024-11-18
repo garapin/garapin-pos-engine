@@ -3,6 +3,7 @@ import Logger from "../../utils/logger.js"; // Pastikan jalur dan ekstensi benar
 import axios from "axios";
 import { connectTargetDatabase } from "../../config/targetDatabase.js";
 import { auditTrailSchema } from "../../models/auditTrailModel.js";
+import { transactionSchema } from "../../models/transactionModel.js";
 
 const processRoute = async ({
   route,
@@ -18,7 +19,10 @@ const processRoute = async ({
   const startTime = new Date();
 
   try {
-    if (route.destination_account_id !== null) {
+    if (
+      route.destination_account_id !== null &&
+      route.source_account_id !== route.destination_account_id
+    ) {
       Logger.log(
         `Routing to ${route.destination_account_id} for transaction ${transaction.invoice}`
       );
@@ -64,6 +68,10 @@ const checkAndSplitTransaction = async (
       apiKey,
       startTime
     );
+  } else {
+    updatedTransaction(transaction, "SETTLED");
+
+    Logger.log(`Transaction ${transaction.invoice} has been split`);
   }
 };
 
@@ -129,6 +137,8 @@ const splitTransaction = async (
     const executionTime = endTime - startTime;
 
     if (postTransfer.status === 200) {
+      updatedTransaction(transaction, "SETTLED");
+
       Logger.log(`Transaction ${transaction.invoice} successfully split`);
 
       // Cek apakah log audit trail sudah ada
@@ -152,6 +162,8 @@ const splitTransaction = async (
         });
       }
     } else {
+      updatedTransaction(transaction, "NOT_SETTLED");
+
       Logger.log(`Failed to split transaction ${transaction.invoice}`);
 
       // Cek apakah log audit trail sudah ada
@@ -176,6 +188,7 @@ const splitTransaction = async (
       }
     }
   } catch (error) {
+    updatedTransaction(transaction, "NOT_SETTLED");
     const endTime = new Date();
     const executionTime = endTime - startTime;
 
@@ -208,6 +221,24 @@ const splitTransaction = async (
   }
 };
 
+const updatedTransaction = async (transaction, status) => {
+  try {
+    const dbname = transaction.invoice.split("&&")[1];
+    const storeDatabase = await connectTargetDatabase(dbname);
+
+    const transactionModel = storeDatabase.model(
+      "Transaction",
+      transactionSchema
+    );
+    var updatedTsransaction = await transactionModel.findOneAndUpdate(
+      { invoice: transaction.invoice },
+      { bp_settlement_status: status },
+      { new: true }
+    );
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+  }
+};
 workerpool.worker({
   processRoute: processRoute,
 });

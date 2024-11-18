@@ -5,11 +5,11 @@ import TransactionEngine from "./engines/bagi-bagi-transaction/transactionEngine
 // const rakEngine = new RakEngine();
 // rakEngine.checkRakEngine();
 
-// const transactionEngine = new TransactionEngine();
-// transactionEngine.processTransactions();
+const transactionEngine = new TransactionEngine();
+transactionEngine.processTransactions();
 
-const cashPaymentEngine = new CashPaymentEngine();
-cashPaymentEngine.checkPaymentCash();
+// const cashPaymentEngine = new CashPaymentEngine();
+// cashPaymentEngine.checkPaymentCash();
 
 // const productengine = new ProductEngine();
 // productengine.processTransactions();

@@ -10,6 +10,7 @@ import { splitPaymentRuleIdScheme } from "../../models/splitPaymentRuleIdModel.j
 import { RouteRole, StatusStore } from "../../config/enums.js";
 import moment from "moment-timezone";
 import { templateSchema } from "../../models/templateModel.js";
+import { auditTrailSchema } from "../../models/auditTrailModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +37,7 @@ const getTransactionStoreTypeByDatabase = async (
 ) => {
   const StoreModelInStoreDatabase = db.model("Store", storeSchema);
   const storeData = await StoreModelInStoreDatabase.find({
-    merchant_role: [RouteRole.TRX, RouteRole.NOT_MERCHANT],
+    merchant_role: [RouteRole.TRX],
   });
 
   if (storeData.length > 0) {
@@ -80,7 +81,12 @@ const checkListTransaction = async (
     });
 
     if (transactionList.length === 0) {
-      Logger.log("Transaction list is empty");
+      Logger.log(
+        "Transaction list is empty for store " +
+          store.store_name +
+          "db name: " +
+          target_database
+      );
       if (
         store.store_status === StatusStore.PENDING_ACTIVE ||
         store.store_status === StatusStore.LOCKED
@@ -98,7 +104,7 @@ const checkListTransaction = async (
 
       transactionList.map(async (transaction) => {
         Logger.errorLog(
-          `Balance store: ${balance} - Transaction total: ${transaction.invoice}`
+          `Balance store: ${target_database} - Transaction total: ${balance} - Transaction total: ${transaction.invoice}`
         );
 
         await processSplitTransactionCash(
@@ -152,8 +158,9 @@ const processSplitTransactionCash = async (
           return acc;
         }, 0);
 
-      Logger.log(`Total without route TRX: ${totalWithoutRouteTrx}`);
-      Logger.log(`Balance: ${balance}`);
+      Logger.log(
+        `Total without route TRX: ${totalWithoutRouteTrx} ${transaction.invoice} ${transaction.total_with_fee} ${balance}`
+      );
 
       if (balance >= totalWithoutRouteTrx) {
         template.routes.map(async (route) => {
@@ -220,6 +227,7 @@ const processRouteInvoice = async (
     Logger.log(
       `Store ${store.account_holder.id} has enough balance Rp ${balance} for transaction ${transaction.invoice} Rp ${transaction.total_with_fee}`
     );
+    const startTime = new Date();
 
     await checkAndSplitTransaction(
       route,
@@ -228,7 +236,8 @@ const processRouteInvoice = async (
       baseUrl,
       apiKey,
       target_database,
-      store
+      store,
+      startTime
     );
     return { success: true };
   } catch (error) {
@@ -244,10 +253,14 @@ const checkAndSplitTransaction = async (
   baseUrl,
   apiKey,
   target_database,
-  store
+  store,
+  startTime
 ) => {
   try {
-    if (route.destination_account_id !== store.account_holder.id) {
+    if (
+      route.destination_account_id !== store.account_holder.id &&
+      route.destination_account_id !== route.source_account_id
+    ) {
       const transactionDestination = await fetchTransactionDestination(
         route,
         transaction,
@@ -256,7 +269,7 @@ const checkAndSplitTransaction = async (
       );
 
       if (transactionDestination.data.data.length === 0) {
-        Logger.log(`Sources id ${source_user_id}`);
+        Logger.log(`Sourcesxxx id ${source_user_id}`);
         Logger.log(
           `Transaction ${transaction.invoice + "&&" + route.reference_id} has not been split yet`
         );
@@ -267,10 +280,12 @@ const checkAndSplitTransaction = async (
           baseUrl,
           apiKey,
           target_database,
-          true
+          true,
+          startTime
         );
       } else {
         Logger.log(`Transaction ${transaction.invoice} has already been split`);
+        updateTransaction(transaction, target_database, "SETTLED");
         Logger.log("Update Transaction main invoice");
         // await updateTransaction(transaction, target_database);
       }
@@ -283,7 +298,8 @@ const checkAndSplitTransaction = async (
         transaction,
         baseUrl,
         apiKey,
-        target_database
+        target_database,
+        startTime
       );
     }
     return { success: true };
@@ -304,7 +320,8 @@ const checkAndSplitChild = async (
   transaction,
   baseUrl,
   apiKey,
-  target_database
+  target_database,
+  startTime
 ) => {
   let db = null;
   try {
@@ -345,7 +362,8 @@ const checkAndSplitChild = async (
                   baseUrl,
                   apiKey,
                   target_database,
-                  false
+                  false,
+                  startTime
                 );
 
                 if (route.role === "SUPP") {
@@ -354,7 +372,8 @@ const checkAndSplitChild = async (
                     transaction,
                     baseUrl,
                     apiKey,
-                    target_database
+                    target_database,
+                    startTime
                   );
                 }
               }
@@ -384,8 +403,11 @@ const splitTransaction = async (
   baseUrl,
   apiKey,
   target_database,
-  mainTrx
+  mainTrx,
+  startTime
 ) => {
+  const db = await connectTargetDatabase("garapin_pos");
+  const AuditTrail = db.model("audit_trail", auditTrailSchema);
   const transferBody = {
     amount: route.flat_amount,
     source_user_id: source_user_id,
@@ -405,90 +427,19 @@ const splitTransaction = async (
       }
     );
 
-    try {
-      const postTransfer = await axios.post(
-        `${baseUrl}/transfers`,
-        transferBody,
-        {
-          headers: {
-            Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+    const endTime = new Date();
+    const executionTime = endTime - startTime;
 
-      const endTime = new Date();
-      const executionTime = endTime - startTime;
+    if (postTransfer.status === 200) {
+      updateTransaction(transaction, target_database, "SETTLED");
 
-      if (postTransfer.status === 200) {
-        Logger.log(`Transaction ${transaction.invoice} successfully split`);
-
-        // Cek apakah log audit trail sudah ada
-        const existingLog = await AuditTrail.findOne({
-          transactionId: transaction.invoice,
-          store_name: route.reference_id,
-          status: "SUCCESS",
-        });
-
-        if (!existingLog) {
-          // Simpan log audit trail
-          await AuditTrail.create({
-            store_name: route.reference_id,
-            transactionId: transaction.invoice,
-            source_user_id: route.source_account_id,
-            destination_user_id: route.destination_account_id,
-            status: "SUCCESS",
-            message: `Transaction ${transaction.invoice} successfully split`,
-            executionTime: executionTime,
-            timestamp: endTime,
-          });
-        }
-
-        updateTransaction(transaction, target_database, "SETTLED");
-      } else {
-        Logger.log(`Failed to split transaction ${transaction.invoice}`);
-
-        // Cek apakah log audit trail sudah ada
-        const existingLog = await AuditTrail.findOne({
-          transactionId: transaction.invoice,
-          store_name: route.reference_id,
-          status: "FAILED",
-        });
-
-        if (!existingLog) {
-          // Simpan log audit trail
-          await AuditTrail.create({
-            store_name: route.reference_id,
-            transactionId: transaction.invoice,
-            source_user_id: route.source_account_id,
-            destination_user_id: route.destination_account_id,
-            status: "FAILED",
-            message: `Failed to split transaction ${transaction.invoice}`,
-            executionTime: executionTime,
-            timestamp: endTime,
-          });
-        }
-        updateTransaction(transaction, target_database, "NOT_SETTLED");
-      }
-    } catch (error) {
-      updateTransaction(transaction, target_database, "NOT_SETTLED");
-
-      const endTime = new Date();
-      const executionTime = endTime - startTime;
-
-      const { response } = error;
-      const { request, ...errorObject } = response;
-
-      Logger.errorLog(
-        "Error during transaction split",
-        errorObject.data.message
-      );
+      Logger.log(`Transaction ${transaction.invoice} successfully split`);
 
       // Cek apakah log audit trail sudah ada
       const existingLog = await AuditTrail.findOne({
         transactionId: transaction.invoice,
         store_name: route.reference_id,
-        status: "ERROR",
+        status: "SUCCESS",
       });
 
       if (!existingLog) {
@@ -498,17 +449,70 @@ const splitTransaction = async (
           transactionId: transaction.invoice,
           source_user_id: route.source_account_id,
           destination_user_id: route.destination_account_id,
-          status: "ERROR",
-          code: errorObject.data.error_code,
-          message: `${errorObject.data.message}`,
+          status: "SUCCESS",
+          message: `Transaction ${transaction.invoice} successfully split`,
+          executionTime: executionTime,
+          timestamp: endTime,
+        });
+      }
+    } else {
+      updateTransaction(transaction, target_database, "NOT_SETTLED");
+
+      Logger.log(`Failed to split transaction ${transaction.invoice}`);
+
+      // Cek apakah log audit trail sudah ada
+      const existingLog = await AuditTrail.findOne({
+        transactionId: transaction.invoice,
+        store_name: route.reference_id,
+        status: "FAILED",
+      });
+
+      if (!existingLog) {
+        // Simpan log audit trail
+        await AuditTrail.create({
+          store_name: route.reference_id,
+          transactionId: transaction.invoice,
+          source_user_id: route.source_account_id,
+          destination_user_id: route.destination_account_id,
+          status: "FAILED",
+          message: `Failed to split transaction ${transaction.invoice}`,
           executionTime: executionTime,
           timestamp: endTime,
         });
       }
     }
-    return { success: true };
   } catch (error) {
-    Logger.errorLog("Error during transaction split", error);
+    updateTransaction(transaction, target_database, "NOT_SETTLED");
+
+    const endTime = new Date();
+    const executionTime = endTime - startTime;
+
+    const { response } = error;
+    const { request, ...errorObject } = response;
+
+    Logger.errorLog("Error during transaction split", errorObject.data.message);
+
+    // Cek apakah log audit trail sudah ada
+    const existingLog = await AuditTrail.findOne({
+      transactionId: transaction.invoice,
+      store_name: route.reference_id,
+      status: "ERROR",
+    });
+
+    if (!existingLog) {
+      // Simpan log audit trail
+      await AuditTrail.create({
+        store_name: route.reference_id,
+        transactionId: transaction.invoice,
+        source_user_id: route.source_account_id,
+        destination_user_id: route.destination_account_id,
+        status: "ERROR",
+        code: errorObject.data.error_code,
+        message: `${errorObject.data.message}`,
+        executionTime: executionTime,
+        timestamp: endTime,
+      });
+    }
   }
 };
 

@@ -14,7 +14,7 @@ const XENDIT_API_KEY = process.env.XENDIT_API_KEY;
 const XENDIT_URL = "https://api.xendit.co";
 
 const pool = workerpool.pool(path.resolve(__dirname, "routeWorkerCash.js"), {
-  minWorkers: "max",
+  minWorkers: 1,
 });
 
 const isValidReferenceId = (referenceId) => {
@@ -42,6 +42,7 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
     const storeModel = await storeDatabase
       .model("Store", storeSchema)
       .findOne({});
+
     const transactions = await transactionModel
       .find({
         bp_settlement_status: "NOT_SETTLED",
@@ -52,15 +53,18 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
     // console.log(transactions.length);
 
     if (transactions.length === 0) {
-      Logger.log("Transaction list is empty");
+      Logger.log("Transaction list is empty" + "db name: " + dbname);
       return;
     }
     const accountId = storeModel.account_holder.id;
 
     const balance = await getXenditBalanceById(accountId);
-    Logger.log(`Checking balance ${balance.data.balance}`);
     for (const transaction of transactions) {
       if (isValidReferenceId(transaction.invoice)) {
+        // Logger.log(
+        //   `Checking balance ${balance.data.balance} for store ${transaction.invoice}`
+        // );
+
         var itempending = 0;
         // totalPendingAmount += pending.total_with_fee - pending.fee_garapin;
         transaction.product.items.forEach((item) => {
@@ -68,15 +72,18 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
             (item.product.cost_price ?? item.product.cost) * item.quantity;
           itempending += total;
         });
-        if (itempending > balance.data.balance) {
-          Logger.errorLog(
-            `Amount is less than balance ${balance.data.balance}`
-          );
+
+        Logger.log(
+          `Processing storexx ${store.db_name} ${transaction.invoice} with amount ${balance} and pending amount ${itempending}`
+        );
+
+        if (itempending > balance) {
+          Logger.errorLog(`Amount is less than balance ${balance}`);
           try {
             var updatedTransaction = await transactionModel.findOneAndUpdate(
               { invoice: transaction.invoice },
               {
-                engine_info: `Insufficient balance Rp ${balance.data.balance}`,
+                engine_info: `Insufficient balance Rp ${balance}`,
               },
               { new: true }
             );
@@ -88,16 +95,6 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
         }
 
         // xxx;
-
-        try {
-          var updatedTransaction = await transactionModel.findOneAndUpdate(
-            { invoice: transaction.invoice },
-            { bp_settlement_status: "SETTLED" },
-            { new: true }
-          );
-        } catch (error) {
-          console.error("Error updating transaction:", error);
-        }
 
         // Logger.errorLog(
         //   "currenttrx",
@@ -189,7 +186,7 @@ const getXenditBalanceById = async (id) => {
           "for-user-id": id,
         },
       });
-      return response.data; // Kembalikan data jika berhasil
+      return response.data.balance; // Kembalikan data jika berhasil
     } catch (error) {
       if (error.response && error.response.status === 429) {
         attempt++;

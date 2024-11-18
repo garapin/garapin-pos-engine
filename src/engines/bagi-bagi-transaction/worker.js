@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const pool = workerpool.pool(path.resolve(__dirname, "routeWorker.js"), {
-  minWorkers: "max",
+  minWorkers: 1,
 });
 
 const isValidReferenceId = (referenceId) => {
@@ -41,6 +41,10 @@ const processTransaction = async ({
         transaction.settlement_status === SettlementStatus.SETTLED &&
         transaction.cashflow === Cashflow.MONEY_IN
       ) {
+        Logger.log(
+          `Processingxxx ${transaction.reference_id} transactions ${store}`
+        );
+
         // Periksa status penyelesaian di database
         const dbTransaction = await TransactionModel.findOne({
           invoice: transaction.reference_id,
@@ -64,7 +68,7 @@ const processTransaction = async ({
 
           if (template) {
             Logger.log(
-              `Processing invoice ${transaction.reference_id} with amount ${transaction.amount}`
+              `Processing invoicexxx ${transaction.reference_id} with amount ${transaction.amount}`
             );
 
             for (const route of template.routes) {
