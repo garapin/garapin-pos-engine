@@ -48,16 +48,22 @@ const getTransactionStoreTypeByDatabase = async (
   baseUrl,
   apiKey
 ) => {
-  const StoreModelInStoreDatabase = db.model("Store", storeSchema);
-  const storeData = await StoreModelInStoreDatabase.find({});
+  await checkListTransaction(target_database, garapinPosStore, baseUrl, apiKey);
+  // const StoreModelInStoreDatabase = db.model("Store", storeSchema);
+  // const storeData = await StoreModelInStoreDatabase.find({});
 
-  if (storeData.length > 0) {
-    for (const store of storeData) {
-      // Logger.log(`Balance store XENDIT QUICK RELEASE Rp ${balance}`);
-      await checkListTransaction(target_database, store, baseUrl, apiKey);
-      // Logger.log(`store.db_name ${store}`);
-    }
-  }
+  // if (storeData.length > 0) {
+  //   for (const store of storeData) {
+  //     // Logger.log(`Balance store XENDIT QUICK RELEASE Rp ${balance}`);
+  //     await checkListTransaction(
+  //       target_database,
+  //       garapinPosStore,
+  //       baseUrl,
+  //       apiKey
+  //     );
+  //     // Logger.log(`store.db_name ${store}`);
+  //   }
+  // }
 };
 
 const checkListTransaction = async (
@@ -144,7 +150,9 @@ const processSplitTransactionCash = async (
       }, 0);
 
       Logger.log(`Total transaction: ${totalTransaction}`);
-      Logger.log(`Balance: ${balance}`);
+      Logger.log(
+        `Balance: ${balance} - Total transaction: ${totalNonGarapinFee}`
+      );
 
       if (balance >= totalTransaction) {
         template.routes.map(async (route) => {
@@ -426,10 +434,10 @@ const splitTransaction = async (
     reference: transaction.invoice + "&&" + route.reference_id,
   };
 
-  Logger.log("amount", transferBody.amount);
-  Logger.log("source_user_id", transferBody.source_user_id);
-  Logger.log("destination_user_id", transferBody.destination_user_id);
-  Logger.log("reference", transferBody.reference);
+  // Logger.errorLog("amountXX", transferBody.amount);
+  // Logger.errorLog("source_user_idXXX", transferBody.source_user_id);
+  // Logger.errorLog("destination_user_idXXX", transferBody.destination_user_id);
+  // Logger.errorLog("referenceXXX", transferBody.reference);
 
   try {
     const postTransfer = await axios.post(

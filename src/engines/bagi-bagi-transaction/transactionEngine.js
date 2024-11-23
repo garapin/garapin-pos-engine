@@ -123,6 +123,11 @@ class TransactionEngine {
         transactions = transactions.filter((transaction) => {
           return !transaction.reference_id.includes("&&QUICK_RELEASE");
         });
+        transactions = transactions.filter((transaction) => {
+          return !transaction.reference_id.includes(
+            "&&QUICK_RELEASE_WITHDRAWL"
+          );
+        });
         // console.log(`Grup untuk db_name: ${dbName}`);
         // transactions.forEach((element) => {
         //   console.log("element.reference_id", element.reference_id);
