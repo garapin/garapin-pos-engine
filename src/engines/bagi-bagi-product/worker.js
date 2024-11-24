@@ -35,7 +35,6 @@ const processTransaction = async ({
     for (const transaction of transactions) {
       if (
         isValidReferenceId(transaction.reference_id) &&
-        transaction.settlement_status === SettlementStatus.SETTLED &&
         transaction.cashflow === Cashflow.MONEY_IN
       ) {
         const dbname = transaction.reference_id.split("&&")[1];
@@ -45,6 +44,7 @@ const processTransaction = async ({
           "rakTransaction",
           rakTransactionSchema
         );
+
         await RaktransactionModel.updateOne(
           { invoice: transaction.reference_id },
           { settlement_status: "SETTLED" }
@@ -74,7 +74,21 @@ const processTransaction = async ({
         }
 
         const balance = await getXenditBalanceById(accountId);
-        if (currenttrx.total_with_fee > balance.data.balance) {
+
+        const template = await TemplateModel.findOne({
+          name: transaction.reference_id,
+        });
+
+        if (template === null) {
+          // Logger.errorLog("Template not found");
+          continue;
+        }
+        let totalsplitamount = 0;
+        template.routes.forEach(async (route) => {
+          totalsplitamount += route.role === "ADMIN" ? 0 : route.amount;
+        });
+
+        if (totalsplitamount > balance.data.balance) {
           Logger.errorLog(
             `Amount is less than balance ${balance.data.balance}`
           );
@@ -82,15 +96,25 @@ const processTransaction = async ({
           continue;
         }
 
-        try {
-          var updatedTransaction = await transactionModel.findOneAndUpdate(
-            { invoice: transaction.reference_id },
-            { bp_settlement_status: "SETTLED" },
-            { new: true }
-          );
-        } catch (error) {
-          console.error("Error updating transaction:", error);
-        }
+        // try {
+        //   var updatedTransaction = await transactionModel.findOneAndUpdate(
+        //     { invoice: transaction.reference_id },
+        //     { bp_settlement_status: "SETTLED" },
+        //     { new: true }
+        //   );
+        // } catch (error) {
+        //   console.error("Error updating transaction:", error);
+        // }
+        // try {
+        //   var updatedparentTransaction =
+        //     await transactionModel.findOneAndUpdate(
+        //       { parent_invoice: transaction.reference_id },
+        //       { bp_settlement_status: "SETTLED" },
+        //       { new: true }
+        //     );
+        // } catch (error) {
+        //   console.error("Error updating transaction:", error);
+        // }
 
         // Logger.errorLog(
         //   "currenttrx",

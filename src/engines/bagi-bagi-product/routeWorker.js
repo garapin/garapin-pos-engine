@@ -4,6 +4,7 @@ import axios from "axios";
 import { connectTargetDatabase } from "../../config/targetDatabase.js";
 import { auditTrailSchema } from "../../models/auditTrailModel.js";
 import { transactionSchema } from "../../models/transactionModel.js";
+import { Invoice } from "xendit-node";
 const processRoute = async ({
   route,
   transaction,
@@ -69,6 +70,8 @@ const checkAndSplitTransaction = async (
       apiKey,
       startTime
     );
+  } else {
+    updatedparentTransaction(transaction, "SETTLED");
   }
 };
 
@@ -89,7 +92,30 @@ const fetchTransactionDestination = async (
     },
   });
 };
-
+const updatedparentTransaction = async (transaction, status) => {
+  const dbname = transaction.reference_id.split("&&")[1];
+  const storeDatabase = await connectTargetDatabase(dbname);
+  const transactionModel = storeDatabase.model(
+    "Transaction",
+    transactionSchema
+  );
+  try {
+    const updatedTransaction = await transactionModel.findOneAndUpdate(
+      { invoice: transaction.reference_id },
+      { bp_settlement_status: status }
+    );
+    var updatedParentTransaction = await transactionModel.findOneAndUpdate(
+      {
+        parent_invoice: transaction.reference_id,
+        invoice: /^INV/,
+      }, // Query to find the document
+      { bp_settlement_status: status }, // Update operation
+      { returnDocument: "after" } // Return the updated document
+    );
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+  }
+};
 const splitTransaction = async (
   route,
   transaction,
@@ -159,22 +185,7 @@ const splitTransaction = async (
     } else {
       Logger.log(`Failed to split transaction ${transaction.reference_id}`);
 
-      try {
-        const dbname = transaction.reference_id.split("&&")[1];
-        const storeDatabase = await connectTargetDatabase(dbname);
-
-        const transactionModel = storeDatabase.model(
-          "Transaction",
-          transactionSchema
-        );
-        var updatedTransaction = await transactionModel.findOneAndUpdate(
-          { invoice: transaction.reference_id },
-          { bp_settlement_status: "NOT_SETTLED" },
-          { new: true }
-        );
-      } catch (error) {
-        console.error("Error updating transaction:", error);
-      }
+      updatedparentTransaction(transaction, "NOT_SETTLED");
 
       // Cek apakah log audit trail sudah ada
       const existingLog = await AuditTrail.findOne({
@@ -198,22 +209,8 @@ const splitTransaction = async (
       }
     }
   } catch (error) {
-    try {
-      const dbname = transaction.reference_id.split("&&")[1];
-      const storeDatabase = await connectTargetDatabase(dbname);
+    updatedparentTransaction(transaction, "NOT_SETTLED");
 
-      const transactionModel = storeDatabase.model(
-        "Transaction",
-        transactionSchema
-      );
-      var updatedTransaction = await transactionModel.findOneAndUpdate(
-        { invoice: transaction.reference_id },
-        { bp_settlement_status: "NOT_SETTLED" },
-        { new: true }
-      );
-    } catch (error) {
-      console.error("Error updating transaction:", error);
-    }
     const endTime = new Date();
     const executionTime = endTime - startTime;
 

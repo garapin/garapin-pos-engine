@@ -235,6 +235,10 @@ const updatedTransaction = async (transaction, status) => {
       { bp_settlement_status: status },
       { new: true }
     );
+    const parenttrx = await transactionModel.findOneAndUpdate(
+      { parent_invoice: transaction.invoice },
+      { bp_settlement_status: status }
+    );
   } catch (error) {
     console.error("Error updating transaction:", error);
   }

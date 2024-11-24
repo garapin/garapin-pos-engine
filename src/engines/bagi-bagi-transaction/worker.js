@@ -52,6 +52,9 @@ const processTransaction = async ({
         }).lean();
 
         if (dbTransaction) {
+          if (dbTransaction.invoice.includes("&&QUICK_RELEASE")) {
+            continue;
+          }
           await TransactionModel.updateOne(
             { invoice: transaction.reference_id },
             { settlement_status: "SETTLED" }
