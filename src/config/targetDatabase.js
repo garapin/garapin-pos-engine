@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import 'dotenv/config';
+import mongoose from "mongoose";
+import "dotenv/config";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const connectionCache = {};
@@ -7,22 +7,24 @@ const connectionTimeouts = {};
 const CONNECTION_TIMEOUT = 1 * 60 * 1000; // 1 minutes
 
 const checkDatabaseExists = async (databaseName) => {
-  const adminConnection = await mongoose.createConnection(`${MONGODB_URI}/admin`, {
-    useNewUrlParser: true,
-    connectTimeoutMS: 30000, 
-    useUnifiedTopology: true,
-  }).asPromise(); // Short-lived connection, no pool size set
+  const adminConnection = await mongoose
+    .createConnection(`${MONGODB_URI}/admin`, {
+      useNewUrlParser: true,
+      connectTimeoutMS: 30000,
+      useUnifiedTopology: true,
+    })
+    .asPromise(); // Short-lived connection, no pool size set
 
   const adminDb = adminConnection.db;
   const databases = await adminDb.admin().listDatabases();
-  const exists = databases.databases.some(db => db.name === databaseName);
+  const exists = databases.databases.some((db) => db.name === databaseName);
   await adminConnection.close();
   return exists;
 };
 
 const connectTargetDatabase = async (databaseName) => {
   if (!databaseName) {
-    throw new Error('Database name is required');
+    throw new Error("Database name is required");
   }
 
   if (connectionCache[databaseName]) {
@@ -38,13 +40,15 @@ const connectTargetDatabase = async (databaseName) => {
       return null;
     }
 
-    const connection = await mongoose.createConnection(`${MONGODB_URI}/${databaseName}?authSource=admin`, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      connectTimeoutMS: 30000, 
-      minPoolSize: 5,
-      maxPoolSize: 50
-    }).asPromise(); // Long-lived connection, pool size set
+    const connection = await mongoose
+      .createConnection(`${MONGODB_URI}/${databaseName}?authSource=admin`, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        socketTimeoutMS: 10000,
+        minPoolSize: 5,
+        maxPoolSize: 50,
+      })
+      .asPromise(); // Long-lived connection, pool size set
 
     console.log(`Connected to the Database: ${databaseName}`);
 
