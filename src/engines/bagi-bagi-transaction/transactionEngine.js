@@ -265,6 +265,8 @@ class TransactionEngine {
       } else {
         Logger.errorLog("An unexpected error occurred", error);
       }
+    } finally {
+      await this.closePool();
     }
     console.timeEnd("Worker Pool");
   }
@@ -288,6 +290,7 @@ class TransactionEngine {
 
   async closePool() {
     await this.pool.terminate();
+    await this.bagipool.terminate();
   }
 
   sleep(ms) {

@@ -85,7 +85,7 @@ const processTransaction = async ({
         }
         let totalsplitamount = 0;
         template.routes.forEach(async (route) => {
-          totalsplitamount += route.role === "ADMIN" ? 0 : route.amount;
+          totalsplitamount += route.role === "ADMIN" ? 0 : route.flat_amount;
         });
 
         if (totalsplitamount > balance.data.balance) {
@@ -191,6 +191,14 @@ const processTransaction = async ({
     //   storeDatabase.close(); // Menutup koneksi database
     //   Logger.log("Database connection closed.");
     // }
+    pool
+      .terminate()
+      .then(() => {
+        Logger.log("Worker pool terminated.");
+      })
+      .catch((error) => {
+        Logger.errorLog("Error terminating worker pool:", error);
+      });
   }
 };
 
