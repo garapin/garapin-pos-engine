@@ -246,7 +246,7 @@ const updatedTransaction = async (transaction, status) => {
     console.error("Error updating transaction:", error);
   } finally {
     await storeDatabase.close();
-    workerpool.terminate();
+    // workerpool.terminate();
   }
 };
 workerpool.worker({
