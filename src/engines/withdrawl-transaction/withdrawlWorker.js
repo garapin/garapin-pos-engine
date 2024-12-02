@@ -402,10 +402,10 @@ const checkAndSplitChild = async (
   } catch (error) {
     Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
   } finally {
-    // if (db) {
-    //   db.close(); // Menutup koneksi database
-    //   Logger.log("Database connection closed in worker.");
-    // }
+    if (db) {
+      db.close(); // Menutup koneksi database
+      Logger.log("Database connection closed in worker.");
+    }
   }
 };
 
@@ -534,6 +534,9 @@ const updateTransaction = async (transaction, target_database, store) => {
     }
   } catch (error) {
     Logger.errorLog("Error updating transaction", error);
+  } finally {
+    db.close(); // Menutup koneksi database
+    Logger.log("Database connection closed in worker.");
   }
 };
 

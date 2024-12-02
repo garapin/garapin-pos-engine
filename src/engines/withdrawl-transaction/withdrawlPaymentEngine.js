@@ -31,6 +31,8 @@ class WithdrawlPaymentEngine {
       await Promise.all(promises);
     } catch (error) {
       Logger.errorLog("Error during worker pool withdrawl", error);
+    } finally {
+      this.pool.terminate();
     }
     console.timeEnd("Worker Pool Withdrawl");
   }
