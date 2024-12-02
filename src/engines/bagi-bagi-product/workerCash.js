@@ -65,34 +65,28 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
         //   `Checking balance ${balance.data.balance} for store ${transaction.invoice}`
         // );
 
-        var itempending = 0;
         // totalPendingAmount += pending.total_with_fee - pending.fee_garapin;
-        transaction.product.items.forEach((item) => {
-          const total =
-            (item.product.cost_price ?? item.product.cost) * item.quantity;
-          itempending += total;
+        const template = await TemplateModel.findOne({
+          name: transaction.reference_id,
+        });
+
+        if (template === null) {
+          // Logger.errorLog("Template not found");
+          continue;
+        }
+        let totalsplitamount = 0;
+        template.routes.forEach(async (route) => {
+          totalsplitamount += route.role === "ADMIN" ? 0 : route.flat_amount;
         });
 
         Logger.log(
           `Processing storexx ${store.db_name} ${transaction.invoice} with amount ${balance} and pending amount ${itempending}`
         );
 
-        if (itempending > balance) {
-          Logger.errorLog(`Amount is less than balance ${balance}`);
-          try {
-            var updatedTransaction = await transactionModel.findOneAndUpdate(
-              { invoice: transaction.invoice },
-              {
-                engine_info: `Insufficient balance Rp ${balance}`,
-              },
-              { new: true }
-            );
-          } catch (error) {
-            console.error(
-              "Error updating transaction: processTransaction",
-              error
-            );
-          }
+        if (totalsplitamount > balance.data.balance) {
+          Logger.errorLog(
+            `Amount is less than balance ${balance.data.balance}`
+          );
 
           continue;
         }
