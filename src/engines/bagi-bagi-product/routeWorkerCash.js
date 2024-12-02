@@ -218,13 +218,16 @@ const splitTransaction = async (
         timestamp: endTime,
       });
     }
+  } finally {
+    db.close();
   }
 };
 
 const updatedTransaction = async (transaction, status) => {
+  let storeDatabase;
   try {
     const dbname = transaction.invoice.split("&&")[1];
-    const storeDatabase = await connectTargetDatabase(dbname);
+    storeDatabase = await connectTargetDatabase(dbname);
 
     const transactionModel = storeDatabase.model(
       "Transaction",
@@ -241,6 +244,8 @@ const updatedTransaction = async (transaction, status) => {
     );
   } catch (error) {
     console.error("Error updating transaction:", error);
+  } finally {
+    storeDatabase.close();
   }
 };
 workerpool.worker({

@@ -240,6 +240,7 @@ const splitTransaction = async (
         timestamp: endTime,
       });
     }
+  } finally {
   }
 };
 

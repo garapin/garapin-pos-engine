@@ -390,10 +390,10 @@ const checkAndSplitChild = async (
       error
     );
   } finally {
-    // if (db) {
-    //   db.close(); // Menutup koneksi database
-    //   Logger.log("Database connection closed in worker.");
-    // }
+    if (db) {
+      db.close(); // Menutup koneksi database
+      Logger.log("Database connection closed in worker.");
+    }
   }
 };
 
