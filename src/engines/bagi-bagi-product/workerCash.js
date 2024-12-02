@@ -88,7 +88,10 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
               { new: true }
             );
           } catch (error) {
-            console.error("Error updating transaction:", error);
+            console.error(
+              "Error updating transaction: processTransaction",
+              error
+            );
           }
 
           continue;

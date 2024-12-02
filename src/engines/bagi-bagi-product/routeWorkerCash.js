@@ -243,7 +243,10 @@ const updatedTransaction = async (transaction, status) => {
       { bp_settlement_status: status }
     );
   } catch (error) {
-    console.error("Error updating transaction:", error);
+    console.error(
+      "Error updating transaction: updatedTransaction bagi producct",
+      error
+    );
   } finally {
     await storeDatabase.close();
     // workerpool.terminate();

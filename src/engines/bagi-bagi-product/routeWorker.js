@@ -113,7 +113,7 @@ const updatedparentTransaction = async (transaction, status) => {
       { returnDocument: "after" } // Return the updated document
     );
   } catch (error) {
-    console.error("Error updating transaction:", error);
+    console.error("Error updating transaction: bagi product", error);
   } finally {
     storeDatabase.close();
   }
