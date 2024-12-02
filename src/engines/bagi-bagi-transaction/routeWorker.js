@@ -247,6 +247,9 @@ const splitTransaction = async (
         timestamp: endTime,
       });
     }
+  } finally {
+    await db.close();
+    workerpool.terminate();
   }
 };
 

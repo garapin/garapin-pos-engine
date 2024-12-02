@@ -114,6 +114,8 @@ const updatedparentTransaction = async (transaction, status) => {
     );
   } catch (error) {
     console.error("Error updating transaction:", error);
+  } finally {
+    storeDatabase.close();
   }
 };
 const splitTransaction = async (
@@ -241,6 +243,8 @@ const splitTransaction = async (
       });
     }
   } finally {
+    await db.close();
+    workerpool.terminate();
   }
 };
 

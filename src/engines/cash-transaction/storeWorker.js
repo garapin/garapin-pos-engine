@@ -514,6 +514,12 @@ const splitTransaction = async (
         timestamp: endTime,
       });
     }
+  } finally {
+    if (db) {
+      db.close(); // Menutup koneksi database
+      Logger.log("Database connection closed in worker.");
+      workerpool.terminate();
+    }
   }
 };
 
@@ -541,6 +547,8 @@ const updateTransaction = async (transaction, target_database, success) => {
     }
   } catch (error) {
     Logger.errorLog("Error updating transaction", error);
+  } finally {
+    db.close(); //
   }
 };
 
