@@ -6,14 +6,14 @@ import WithdrawlPaymentEngine from "./engines/withdrawl-transaction/withdrawlPay
 // const rakEngine = new RakEngine();
 // rakEngine.checkRakEngine();
 
-const transactionEngine = new TransactionEngine();
-transactionEngine.processTransactions();
+// const transactionEngine = new TransactionEngine();
+// transactionEngine.processTransactions();
 
 const cashPaymentEngine = new CashPaymentEngine();
 cashPaymentEngine.checkPaymentCash();
 
-const withdrawlPaymentEngine = new WithdrawlPaymentEngine();
-withdrawlPaymentEngine.checkPaymentCash();
+// const withdrawlPaymentEngine = new WithdrawlPaymentEngine();
+// withdrawlPaymentEngine.checkPaymentCash();
 
 // const productengine = new ProductEngine();
 // productengine.processTransactions();

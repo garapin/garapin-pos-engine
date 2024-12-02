@@ -58,7 +58,7 @@ const checkAndSplitTransaction = async (
     apiKey
   );
   if (transactionDestination.data.data.length === 0) {
-    Logger.log(`Transaction ${transaction.invoice} has not been split yet`);
+    Logger.log(`Transaxxction ${transaction.invoice} has not been split yet`);
 
     await splitTransaction(
       route,
@@ -69,9 +69,11 @@ const checkAndSplitTransaction = async (
       startTime
     );
   } else {
-    updatedTransaction(transaction, "SETTLED");
+    updatedparentTransaction(transaction, "SETTLED");
 
-    Logger.log(`Transaction ${transaction.invoice} has been split`);
+    Logger.log(
+      `TransacupdatedTransactiontion ${transaction.invoice} has been split`
+    );
   }
 };
 
@@ -137,7 +139,7 @@ const splitTransaction = async (
     const executionTime = endTime - startTime;
 
     if (postTransfer.status === 200) {
-      updatedTransaction(transaction, "SETTLED");
+      updatedparentTransaction(transaction, "SETTLED");
 
       Logger.log(`Transaction ${transaction.invoice} successfully split`);
 
@@ -162,7 +164,7 @@ const splitTransaction = async (
         });
       }
     } else {
-      updatedTransaction(transaction, "NOT_SETTLED");
+      updatedparentTransaction(transaction, "NOT_SETTLED");
 
       Logger.log(`Failed to split transaction ${transaction.invoice}`);
 
@@ -188,7 +190,7 @@ const splitTransaction = async (
       }
     }
   } catch (error) {
-    updatedTransaction(transaction, "NOT_SETTLED");
+    updatedparentTransaction(transaction, "NOT_SETTLED");
     const endTime = new Date();
     const executionTime = endTime - startTime;
 
@@ -223,34 +225,25 @@ const splitTransaction = async (
   }
 };
 
-const updatedTransaction = async (transaction, status) => {
-  let storeDatabase;
-  try {
-    const dbname = transaction.invoice.split("&&")[1];
-    storeDatabase = await connectTargetDatabase(dbname);
-
-    const transactionModel = storeDatabase.model(
-      "Transaction",
-      transactionSchema
-    );
-    var updatedTsransaction = await transactionModel.findOneAndUpdate(
-      { invoice: transaction.invoice },
-      { bp_settlement_status: status },
-      { new: true }
-    );
-    const parenttrx = await transactionModel.findOneAndUpdate(
-      { parent_invoice: transaction.invoice },
-      { bp_settlement_status: status }
-    );
-  } catch (error) {
-    console.error(
-      "Error updating transaction: updatedTransaction bagi producct",
-      error
-    );
-  } finally {
-    await storeDatabase.close();
-    // workerpool.terminate();
-  }
+const updatedparentTransaction = async (transaction, status) => {
+  // try {
+  //   const mydb = transaction.invoice.split("&&")[1];
+  //   console.error("Error dbnamexx: bagi product" + mydb);
+  //   const storeDatabase = await connectTargetDatabase(mydb);
+  //   console.error("Error dbnamexxx: bagi product" + mydb);
+  //   const transactionModel = storeDatabase.model(
+  //     "Transaction",
+  //     transactionSchema
+  //   );
+  //   const updatedTransaction = await transactionModel.findOneAndUpdate(
+  //     { invoice: transaction.invoice },
+  //     { bp_settlement_status: status }
+  //   );
+  // } catch (error) {
+  //   Logger.errorLog(
+  //     `updatedparentTransactionxxx ${transaction.invoice} has been split`
+  //   );
+  // }
 };
 workerpool.worker({
   processRoute: processRoute,

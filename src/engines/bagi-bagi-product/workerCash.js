@@ -67,7 +67,7 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
 
         // totalPendingAmount += pending.total_with_fee - pending.fee_garapin;
         const template = await TemplateModel.findOne({
-          name: transaction.reference_id,
+          name: transaction.invoice,
         });
 
         if (template === null) {
@@ -80,16 +80,18 @@ const processTransaction = async ({ store, baseUrl, apiKey }) => {
         });
 
         Logger.log(
-          `Processing storexx ${store.db_name} ${transaction.invoice} with amount ${balance} and pending amount ${itempending}`
+          `Processing storexx ${store.db_name} ${transaction.invoice} with amount ${balance} and pending amount ${totalsplitamount}`
         );
 
-        if (totalsplitamount > balance.data.balance) {
-          Logger.errorLog(
-            `Amount is less than balance ${balance.data.balance}`
-          );
+        if (totalsplitamount > balance) {
+          Logger.errorLog(`Amount is less than balance ${balance}`);
 
           continue;
         }
+        const updatedTransaction = await transactionModel.findOneAndUpdate(
+          { invoice: transaction.invoice },
+          { bp_settlement_status: "SETTLED" }
+        );
 
         // xxx;
 

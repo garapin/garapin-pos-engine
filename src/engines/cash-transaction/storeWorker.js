@@ -391,7 +391,7 @@ const checkAndSplitChild = async (
     );
   } finally {
     if (db) {
-      db.close(); // Menutup koneksi database
+      // db.close(); // Menutup koneksi database
       Logger.log("Database connection closed in worker.");
     }
   }
@@ -515,11 +515,11 @@ const splitTransaction = async (
       });
     }
   } finally {
-    if (db) {
-      db.close(); // Menutup koneksi database
-      Logger.log("Database connection closed in worker.");
-      workerpool.terminate();
-    }
+    // if (db) {
+    //   // db.close(); // Menutup koneksi database
+    //   Logger.log("Database connection closed in worker.");
+    //   workerpool.terminate();
+    // }
   }
 };
 
