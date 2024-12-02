@@ -115,7 +115,7 @@ const updatedparentTransaction = async (transaction, status) => {
   } catch (error) {
     console.error("Error updating transaction: bagi product", error);
   } finally {
-    storeDatabase.close();
+    // storeDatabase.close();
   }
 };
 const splitTransaction = async (
