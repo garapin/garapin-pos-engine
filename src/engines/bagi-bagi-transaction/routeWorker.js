@@ -58,6 +58,9 @@ const checkAndSplitTransaction = async (
     baseUrl,
     apiKey
   );
+  Logger.log(
+    `Transactionxxxx ${transactionDestination.data.data} has not been split yet`
+  );
   if (transactionDestination.data.data.length === 0) {
     Logger.log(
       `Transaction ${transaction.reference_id} has not been split yet`
