@@ -7,15 +7,13 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+const apiKey = process.env.XENDIT_API_KEY;
+const baseUrl = "https://api.xendit.co";
+const pool = workerpool.pool(path.resolve(__dirname, "withdrawlWorker.js"), {
+  minWorkers: "max",
+});
 class WithdrawlPaymentEngine {
-  constructor() {
-    this.apiKey = process.env.XENDIT_API_KEY;
-    this.baseUrl = "https://api.xendit.co";
-    this.pool = workerpool.pool(path.resolve(__dirname, "withdrawlWorker.js"), {
-      minWorkers: "max",
-    });
-  }
+  constructor() {}
 
   async checkPaymentCash() {
     const allStore = await this.getAllStore();
@@ -24,15 +22,25 @@ class WithdrawlPaymentEngine {
     try {
       const promises = allStore.map((store) => {
         const storeData = JSON.parse(JSON.stringify(store));
-        return this.pool.exec("processStoreWithdrawl", [
-          { store: storeData, baseUrl: this.baseUrl, apiKey: this.apiKey },
+        return pool.exec("processStoreWithdrawl", [
+          { store: storeData, baseUrl: baseUrl, apiKey: apiKey },
         ]);
       });
+
+      // Tunggu semua worker selesai
       await Promise.all(promises);
     } catch (error) {
       Logger.errorLog("Error during worker pool withdrawl", error);
     } finally {
-      this.pool.terminate();
+      Logger.errorLog("SELESAI");
+      // pool
+      //   .terminate()
+      //   .then(() => {
+      //     Logger.log("Worker pool terminated.");
+      //   })
+      //   .catch((error) => {
+      //     Logger.errorLog("Error terminating worker pool:", error);
+      //   });
     }
     console.timeEnd("Worker Pool Withdrawl");
   }

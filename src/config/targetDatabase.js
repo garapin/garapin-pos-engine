@@ -45,6 +45,7 @@ const connectTargetDatabase = async (databaseName) => {
         useNewUrlParser: true,
         useUnifiedTopology: true,
         socketTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
         minPoolSize: 5,
         maxPoolSize: 50,
       })

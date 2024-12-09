@@ -86,7 +86,7 @@ const checkListTransaction = async (
       const balance = await getBalance(garapinPosStore, baseUrl, apiKey);
       transactionList.map(async (transaction) => {
         Logger.log(
-          `Balance store: ${balance} - Transaction total: ${transaction.total_with_fee}`
+          `Balancexstore: ${balance} - Transaction total: ${transaction.total_with_fee}`
         );
 
         await processSplitTransactionCash(
@@ -121,7 +121,7 @@ const processSplitTransactionCash = async (
   const db = await connectTargetDatabase("garapin_pos");
   const AuditTrail = db.model("audit_trail", auditTrailSchema);
 
-  Logger.log(`Processing transaction ${transaction.invoice}`);
+  Logger.log(`Processingxtransaction ${transaction.invoice}`);
   try {
     const dbTarget = await connectTargetDatabase(target_database);
     Logger.log(`Processingxxtransaction ${transaction.invoice}`);
@@ -404,7 +404,7 @@ const checkAndSplitChild = async (
     Logger.errorLog("Gagal menghubungkan ke database di store worker", error);
   } finally {
     if (db) {
-      db.close(); // Menutup koneksi database
+      // db.close(); // Menutup koneksi database
       Logger.log("Database connection closed in worker.");
     }
   }
@@ -587,11 +587,11 @@ const fetchTransactionDestination = async (
   baseUrl,
   apiKey
 ) => {
-  Logger.log("MASUK FETCH TRANSACTION DESTINATION");
+  Logger.log("xzxxxxzzssas DESTINATION");
   Logger.log(route.destination_account_id);
   Logger.log(transaction.invoice + "&&" + route.reference_id);
   Logger.log(baseUrl);
-  Logger.log(apiKey);
+  Logger.log("xzxxxxzzssas1");
   const url = `${baseUrl}/transactions`;
 
   const response = await axios.get(url, {
@@ -603,8 +603,8 @@ const fetchTransactionDestination = async (
       reference_id: transaction.invoice + "&&" + route.reference_id,
     },
   });
-  Logger.log(response);
-
+  Logger.log("MASUK FETCH TRANSACTION" + response);
+  // xxx;
   return response;
 };
 
