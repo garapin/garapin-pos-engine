@@ -593,15 +593,24 @@ const fetchTransactionDestination = async (
   Logger.log(baseUrl);
   Logger.log(apiKey);
   const url = `${baseUrl}/transactions`;
-  return axios.get(url, {
-    headers: {
-      Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
-      "for-user-id": route.destination_account_id,
-    },
-    params: {
-      reference_id: transaction.invoice + "&&" + route.reference_id,
-    },
-  });
+  let response = null;
+  try {
+    response = axios.get(url, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
+        "for-user-id": route.destination_account_id,
+      },
+      params: {
+        reference_id: transaction.invoice + "&&" + route.reference_id,
+      },
+    });
+  } catch (error) {
+    Logger.errorLog("ERROR FETCH", error);
+  }
+
+  Logger.log(response);
+
+  return response;
 };
 
 // Fungsi pembantu untuk memformat angka ke format Rupiah
