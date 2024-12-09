@@ -594,7 +594,7 @@ const fetchTransactionDestination = async (
   Logger.log(apiKey);
   const url = `${baseUrl}/transactions`;
 
-  return await axios.get(url, {
+  const response = await axios.get(url, {
     headers: {
       Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
       "for-user-id": route.destination_account_id,
@@ -603,6 +603,9 @@ const fetchTransactionDestination = async (
       reference_id: transaction.invoice + "&&" + route.reference_id,
     },
   });
+  Logger.log(response);
+
+  return response;
 };
 
 // Fungsi pembantu untuk memformat angka ke format Rupiah
