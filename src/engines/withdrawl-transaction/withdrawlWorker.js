@@ -607,8 +607,9 @@ const fetchTransactionDestination = async (
   } catch (error) {
     Logger.errorLog("ERROR FETCH", error);
   }
+  console.log("Full Response:", response);
 
-  Logger.log("XZXZXSS" + response.data.data.length);
+  // Logger.log("XZXZXSS" + response.data.data.length);
 
   return response;
 };
