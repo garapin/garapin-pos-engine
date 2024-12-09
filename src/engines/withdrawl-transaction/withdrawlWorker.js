@@ -303,7 +303,8 @@ const checkAndSplitTransaction = async (
     }
 
     if (route.role === "TRX" || route.role === "SUPP") {
-      console.log("ROLE TRX OR SUPP");
+      Logger.log("MASUK IF ROLE TRX OR SUPP");
+
       await checkAndSplitChild(
         route,
         transaction,
@@ -337,7 +338,7 @@ const checkAndSplitChild = async (
   try {
     console.log("Ini Reference untuk child");
     console.log(routeX.reference_id);
-    db = await connectTargetDatabase(routeX.reference_id);
+    db = await connectTargetDatabase(target_database);
 
     const Template = db.model("Template", templateSchema);
     const template = await Template.findOne({});
@@ -455,6 +456,7 @@ const splitTransaction = async (
       Logger.log(
         `Transaction ${transaction.invoice + "&&" + route.reference_id} successfully split`
       );
+      await updateTransaction(transaction, target_database, myStore);
 
       const htmlContent = htmlContentSuccess(
         transferBody.amount,
@@ -470,7 +472,6 @@ const splitTransaction = async (
       );
 
       Logger.log("Update Transaction main invoice");
-      await updateTransaction(transaction, target_database, myStore);
     } else {
       Logger.log(
         `Failed to split transaction ${transaction.invoice + "&&" + route.reference_id}`
