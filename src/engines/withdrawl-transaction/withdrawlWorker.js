@@ -595,7 +595,7 @@ const fetchTransactionDestination = async (
   const url = `${baseUrl}/transactions`;
   let response = null;
   try {
-    response = axios.get(url, {
+    response = await axios.get(url, {
       headers: {
         Authorization: `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
         "for-user-id": route.destination_account_id,
