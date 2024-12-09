@@ -9,7 +9,7 @@ HOST=localhost
 CRON_SCHEDULE=*/1 * * * *
 
 # set database string connection
-MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_URI=mongodb://admin:Palang66@129.150.60.112:27017
 
 # Xendit API Key
 XENDIT_API_KEY=xnd_development_l4bCyXMgN9J5BdQOcArQKi0ezIUtMLw9g8a7eksHPtsNyfgV9Y00qnBLYCbfZ

@@ -535,7 +535,7 @@ const updateTransaction = async (transaction, target_database, store) => {
   } catch (error) {
     Logger.errorLog("Error updating transaction", error);
   } finally {
-    db.close(); // Menutup koneksi database
+    // db.close(); // Menutup koneksi database
     Logger.log("Database connection closed in worker.");
   }
 };
