@@ -587,11 +587,11 @@ const fetchTransactionDestination = async (
   baseUrl,
   apiKey
 ) => {
-  // Logger.log("MASUK FETCH TRANSACTION DESTINATION");
-  // Logger.log(route.destination_account_id);
-  // Logger.log(transaction.invoice + "&&" + route.reference_id);
-  // Logger.log(baseUrl);
-  // Logger.log(apiKey);
+  Logger.log("MASUK FETCH TRANSACTION DESTINATION");
+  Logger.log(route.destination_account_id);
+  Logger.log(transaction.invoice + "&&" + route.reference_id);
+  Logger.log(baseUrl);
+  Logger.log(apiKey);
   const url = `${baseUrl}/transactions`;
   return axios.get(url, {
     headers: {
