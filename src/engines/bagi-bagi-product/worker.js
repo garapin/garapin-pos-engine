@@ -191,14 +191,14 @@ const processTransaction = async ({
     //   storeDatabase.close(); // Menutup koneksi database
     //   Logger.log("Database connection closed.");
     // }
-    pool
-      .terminate()
-      .then(() => {
-        Logger.log("Worker pool terminated.");
-      })
-      .catch((error) => {
-        Logger.errorLog("Error terminating worker pool:", error);
-      });
+    // pool
+    //   .terminate()
+    //   .then(() => {
+    //     Logger.log("Worker pool terminated.");
+    //   })
+    //   .catch((error) => {
+    //     Logger.errorLog("Error terminating worker pool:", error);
+    //   });
   }
 };
 
