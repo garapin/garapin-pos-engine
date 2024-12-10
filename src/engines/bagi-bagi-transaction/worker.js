@@ -110,14 +110,14 @@ const processTransaction = async ({
   } catch (error) {
     Logger.errorLog("Gagal menghubungkan ke database", error);
   } finally {
-    // pool
-    //   .terminate()
-    //   .then(() => {
-    //     Logger.log("Worker pool terminated.");
-    //   })
-    //   .catch((error) => {
-    //     Logger.errorLog("Error terminating worker pool:", error);
-    //   });
+    pool
+      .terminate()
+      .then(() => {
+        Logger.log("Worker pool terminated.");
+      })
+      .catch((error) => {
+        Logger.errorLog("Error terminating worker pool:", error);
+      });
   }
 };
 

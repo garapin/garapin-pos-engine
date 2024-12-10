@@ -50,8 +50,8 @@ class CashPaymentEngine {
     } catch (error) {
       Logger.errorLog("Error during worker pool cash", error.message);
     } finally {
-      this.pool.terminate();
-      this.bagipool.terminate();
+      // this.pool.terminate();
+      // this.bagipool.terminate();
     }
     console.timeEnd("Worker Pool Cash");
   }

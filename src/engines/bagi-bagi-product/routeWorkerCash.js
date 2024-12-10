@@ -1,4 +1,4 @@
-import workerpool from "workerpool";
+import workerpool, { pool } from "workerpool";
 import Logger from "../../utils/logger.js"; // Pastikan jalur dan ekstensi benar
 import axios from "axios";
 import { connectTargetDatabase } from "../../config/targetDatabase.js";
@@ -222,6 +222,7 @@ const splitTransaction = async (
     }
   } finally {
     db.close();
+    pool.then((pool) => pool.terminate());
   }
 };
 
