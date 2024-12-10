@@ -289,8 +289,8 @@ class TransactionEngine {
   }
 
   async closePool() {
-    // await this.pool.terminate();
-    // await this.bagipool.terminate();
+    await this.pool.terminate();
+    await this.bagipool.terminate();
   }
 
   sleep(ms) {

@@ -252,7 +252,7 @@ const splitTransaction = async (
     }
   } finally {
     await db.close();
-    workerpool.terminate();
+    // workerpool.terminate();
   }
 };
 
