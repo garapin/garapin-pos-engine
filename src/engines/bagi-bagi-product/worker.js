@@ -8,6 +8,7 @@ import { Cashflow, SettlementStatus } from "../../config/enums.js";
 import { transactionSchema } from "../../models/transactionModel.js";
 import { rakTransactionSchema } from "../../models/rakuTransactionModel.js";
 import axios from "axios";
+import { storeSchema } from "../../models/storeModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,13 +24,7 @@ const isValidReferenceId = (referenceId) => {
 };
 
 // Implement the logic that needs to run in a separate thread
-const processTransaction = async ({
-  transactions,
-  store,
-  accountId,
-  baseUrl,
-  apiKey,
-}) => {
+const processTransaction = async ({ transactions, store, baseUrl, apiKey }) => {
   let storeDatabase = null;
   try {
     for (const transaction of transactions) {
@@ -39,6 +34,13 @@ const processTransaction = async ({
       ) {
         const dbname = transaction.reference_id.split("&&")[1];
         storeDatabase = await connectTargetDatabase(dbname);
+
+        const accountId = await storeDatabase
+          .model("Store", storeSchema)
+          .findOne()
+          .then((store) => store.account_holder.id);
+
+        Logger.log("accountsss" + accountId);
 
         const RaktransactionModel = storeDatabase.model(
           "rakTransaction",
@@ -88,43 +90,24 @@ const processTransaction = async ({
           totalsplitamount += route.role === "ADMIN" ? 0 : route.flat_amount;
         });
 
+        // Logger.log(`amounttrxs${transaction.totalsplitamount}`);
+
         if (totalsplitamount > balance.data.balance) {
           Logger.errorLog(
-            `Amount is less than balance ${balance.data.balance}`
+            `amounttrxs  is less than balance ${balance.data.balance} for transaction ${transaction.reference_id}` +
+              "skipps"
           );
 
-          try {
-            var updatedTransaction = await transactionModel.findOneAndUpdate(
-              { invoice: transaction.reference_id },
-              { bp_settlement_status: "NOT_SETTLED" },
-              { new: true }
-            );
-          } catch (error) {
-            console.error("Error updating transaction:", error);
-          }
           continue;
         }
 
-        // try {
-        //   var updatedparentTransaction =
-        //     await transactionModel.findOneAndUpdate(
-        //       { parent_invoice: transaction.reference_id },
-        //       { bp_settlement_status: "SETTLED" },
-        //       { new: true }
-        //     );
-        // } catch (error) {
-        //   console.error("Error updating transaction:", error);
-        // }
-
-        // Logger.errorLog(
-        //   "currenttrx",
-        //   updatedTransaction.invoice +
-        //     " " +
-        //     updatedTransaction.bp_settlement_status
-        // );
-
+        Logger.log(
+          `amounttrxs ${totalsplitamount}` +
+            "|" +
+            `balance${balance.data.balance}` +
+            "lanjut"
+        );
         let listtemplate;
-        Logger.log(`transactionssss${transaction.reference_id}`);
 
         if (transaction.reference_id.endsWith("&&RAK")) {
           listtemplate = await TemplateModel.find({

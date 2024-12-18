@@ -162,6 +162,8 @@ const splitTransaction = async (
     const executionTime = endTime - startTime;
 
     if (postTransfer.status === 200) {
+      updatedparentTransaction(transaction, "SETTLED");
+
       Logger.log(`Transaction ${transaction.reference_id} successfully split`);
 
       // Cek apakah log audit trail sudah ada

@@ -154,7 +154,6 @@ class TransactionEngine {
             {
               transactions: transactions,
               store: dbName,
-              accountId: this.accountId,
               baseUrl: this.baseUrl,
               apiKey: this.apiKey,
             },
