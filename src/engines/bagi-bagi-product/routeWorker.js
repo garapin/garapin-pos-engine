@@ -213,7 +213,7 @@ const splitTransaction = async (
       }
     }
   } catch (error) {
-    updatedparentTransaction(transaction, "NOT_SETTLED");
+    // updatedparentTransaction(transaction, "NOT_SETTLED");
 
     const endTime = new Date();
     const executionTime = endTime - startTime;
